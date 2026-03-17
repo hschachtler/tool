@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Version 2.1.0 — BikePacking Manager -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -236,6 +237,37 @@ body{font-family:'DM Sans',sans-serif;background:#f0f4f8;color:#1a2b3c;height:10
 .kmbar{width:100%;height:4px;background:#edf2f7;border-radius:2px;margin:5px 0 9px;overflow:hidden}
 .kmfill{height:100%;border-radius:2px;background:linear-gradient(90deg,#1a8a5a,#1a5080)}
 
+/* DESIGN SYSTEM VARIABLES */
+:root{
+  --bg:#f0f4f8;--surface:#fff;--s2:#f4f6f9;
+  --tx:#1a2b3c;--tx2:#5a7a9a;--tx3:#9ab0c8;
+  --bd:#e2e8f0;--bd2:#dde4ec;
+  --g1:#1a6b4a;--g2:#1a5080;
+  --o1:#c85a0a;--o2:#e07820;
+  --acc:#f0f7f4;--dn:#c04040;--dnb:#fde8e8;
+  --sh:0 2px 10px rgba(0,0,0,.07);
+}
+[data-theme="dark"]{
+  --bg:#111820;--surface:#1a2232;--s2:#1e2a3a;
+  --tx:#e8f0f8;--tx2:#7a9ab8;--tx3:#4a6a88;
+  --bd:#2a3a4a;--bd2:#253344;--acc:#1a2a38;
+  --dn:#e04040;--dnb:#3a1818;
+  --sh:0 2px 10px rgba(0,0,0,.3);
+}
+[data-theme="dark"] body{background:#111820;color:#e8f0f8}
+[data-theme="dark"] #topbar{background:#1a2232!important;border-bottom-color:#2a3a4a!important}
+[data-theme="dark"] #topbar h1{color:#e8f0f8!important}
+[data-theme="dark"] #gpsarea,[data-theme="dark"] #tour-strip,[data-theme="dark"] #filters{background:#1a2232!important;border-bottom-color:#2a3a4a!important}
+[data-theme="dark"] .poi-card{background:#1a2232!important;border-color:#2a3a4a!important;color:#e8f0f8!important}
+
+/* AUTH OVERLAY */
+#auth-overlay{position:fixed;inset:0;z-index:99999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;transition:background .3s}
+#auth-overlay.hidden{display:none}
+.auth-logo-bp{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--tx);text-align:center}
+.auth-logo-bp span{color:var(--o1)}
+.auth-sub-bp{font-size:.78rem;color:var(--tx3);text-align:center;line-height:1.6;max-width:280px}
+.auth-btn-bp{padding:12px 28px;background:linear-gradient(135deg,#1a6b4a,#1a5080);border:none;border-radius:12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;min-height:44px}
+
 /* LEAFLET overrides */
 #map-filter-bar::-webkit-scrollbar{display:none}
 #map-filter-bar .mf-btn{pointer-events:all;border:none;border-radius:20px;padding:7px 13px;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap;-webkit-appearance:none;transition:all .15s;box-shadow:0 2px 8px rgba(0,0,0,.18);display:flex;align-items:center;gap:4px;min-height:34px;opacity:.88}
@@ -246,16 +278,25 @@ body{font-family:'DM Sans',sans-serif;background:#f0f4f8;color:#1a2b3c;height:10
 .leaflet-popup-content{margin:9px 13px!important;font-size:.76rem!important;line-height:1.5!important;color:#1a2b3c!important}
 </style>
 </head>
-<body>
+<body data-version="2.1.0">
+
+<!-- AUTH OVERLAY -->
+<div id="auth-overlay" class="hidden">
+  <div class="auth-logo-bp">🚴 Bike<span>Packing</span></div>
+  <div class="auth-sub-bp">Bitte zuerst im Portal einloggen, um diese App zu nutzen.</div>
+  <button class="auth-btn-bp" onclick="goToPortal()">🔑 Zum Portal</button>
+</div>
 
 <!-- TOP BAR -->
 <div id="topbar">
-  <h1>🚴 <span id="app-title-text">BikePacking</span> <span id="version-badge" style="font-size:.52rem;font-weight:400;color:#9ab0c8;font-family:'DM Sans',sans-serif;background:#f0f4f8;border:1px solid #dde4ec;border-radius:8px;padding:2px 6px;vertical-align:middle;letter-spacing:.03em">v2.0.0</span></h1>
+  <h1>🚴 <span id="app-title-text">BikePacking</span> <span id="version-badge" style="font-size:.52rem;font-weight:400;color:#9ab0c8;font-family:'DM Sans',sans-serif;background:#f0f4f8;border:1px solid #dde4ec;border-radius:8px;padding:2px 6px;vertical-align:middle;letter-spacing:.03em">v2.1.0</span></h1>
   <div id="topbar-btns">
     <button id="topbar-wizard-btn" class="topbar-btn topbar-btn-wizard" onclick="openWizardAdmin()" style="display:none">🧭 Wizard</button>
     <button id="topbar-osm-btn" class="topbar-btn" onclick="openOsmEnrichModal()" style="display:none;background:linear-gradient(135deg,#1a7a4a,#1a5080);color:#fff;box-shadow:0 1px 5px rgba(0,0,0,.15)">🌍 OSM</button>
     <button class="topbar-btn topbar-btn-weather" onclick="openWeather()">🌤️</button>
     <button class="topbar-btn topbar-btn-map" onclick="showView('map')">🗺️ Karte</button>
+    <button class="topbar-btn" id="theme-btn-bp" onclick="toggleThemeBp()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx2)">🌙</button>
+    <button class="topbar-btn" onclick="goToPortal()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx2)" title="Zurück zum Portal">⌂</button>
     <button id="topbar-login-btn" class="topbar-btn topbar-btn-login" onclick="isAdmin?doLogout():openLoginModal()">
       <span id="topbar-login-icon">🔐</span><span id="topbar-login-label">Login</span>
     </button>
@@ -4564,6 +4605,35 @@ document.addEventListener('DOMContentLoaded', ()=>{
     document.getElementById('km-hint').textContent=hint;
   });
 });
+
+// ═══ AUTH ═══
+function checkAuth() {
+  if (sessionStorage.getItem('portal_auth') !== '1') {
+    document.getElementById('auth-overlay').classList.remove('hidden');
+  } else {
+    document.getElementById('auth-overlay').classList.add('hidden');
+  }
+}
+function goToPortal() { window.location.replace('../index.html'); }
+
+// ═══ THEME ═══
+function applyThemeBp() {
+  const dark = localStorage.getItem('portal_theme') === 'dark';
+  document.body.setAttribute('data-theme', dark ? 'dark' : '');
+  const btn = document.getElementById('theme-btn-bp');
+  if (btn) btn.textContent = dark ? '☀️' : '🌙';
+}
+function toggleThemeBp() {
+  const isDark = document.body.getAttribute('data-theme') === 'dark';
+  localStorage.setItem('portal_theme', isDark ? '' : 'dark');
+  applyThemeBp();
+}
+
+// ═══ BOOT (after DOMContentLoaded) ═══
+document.addEventListener('DOMContentLoaded', () => {
+  applyThemeBp();
+  checkAuth();
+});
 </script>
 <!-- PHOTO UPLOAD MODAL -->
 <div id="photo-modal">
@@ -4617,3 +4687,4 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </div>
 </body>
 </html>
+<!-- END OF FILE — Version 2.1.0 -->
