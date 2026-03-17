@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 1.4.0 -->
+<!-- Version 1.4.1 -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -296,7 +296,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 #pin-overlay{display:none!important}
 </style>
 </head>
-<body data-version="1.4.0">
+<body data-version="1.4.1">
 
 <!-- ═══ AUTH OVERLAY ═══ -->
 <div id="auth-overlay" class="hidden">
@@ -1805,8 +1805,21 @@ function adminResizeStart(e, resizerIdx) {
 
 
 // ═══ AUTH ═══
+const AUTH_TTL = 24 * 60 * 60 * 1000; // 24h
+
+function isAuthValid() {
+  if (localStorage.getItem('portal_auth') !== '1') return false;
+  const ts = parseInt(localStorage.getItem('portal_auth_ts') || '0');
+  if (Date.now() - ts > AUTH_TTL) {
+    localStorage.removeItem('portal_auth');
+    localStorage.removeItem('portal_auth_ts');
+    return false;
+  }
+  return true;
+}
+
 function checkAuth() {
-  if (sessionStorage.getItem('portal_auth') !== '1') {
+  if (!isAuthValid()) {
     document.getElementById('auth-overlay').classList.remove('hidden');
   } else {
     document.getElementById('auth-overlay').classList.add('hidden');
@@ -1989,4 +2002,4 @@ init();
 
 </body>
 </html>
-<!-- END OF FILE — Version 1.4.0 -->
+<!-- END OF FILE — Version 1.4.1 -->
