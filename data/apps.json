@@ -1,15 +1,5 @@
 [
   {
-    "id": "mmu76jhx",
-    "icon": "📦",
-    "name": "Packlist",
-    "desc": "",
-    "path": "packlist",
-    "active": true,
-    "updatedAt": "2026-03-17T05:54:29.301Z",
-    "scaffolded": true
-  },
-  {
     "id": "mmu77hwx",
     "icon": "G",
     "name": "GPX Splitter",
