@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 1.1.2 — App Portal -->
+<!-- Version 1.2.0 — App Portal -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -147,6 +147,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .toggle input:checked+.toggle-slider{background:var(--g1)}
 .toggle input:checked+.toggle-slider:before{transform:translateX(18px)}
 
+/* ═══ UPLOAD DROP ZONE ═══ */
+#upload-drop.drag-over{border-color:var(--g1);background:var(--acc)}
+#upload-drop.has-file{border-color:var(--g1);border-style:solid}
+
 /* ═══ SCAFFOLD INFO BOX ═══ */
 .scaffold-info{background:var(--acc);border:1px solid var(--bd2);border-radius:8px;padding:10px 12px;font-size:.65rem;color:var(--tx2);line-height:1.7}
 .scaffold-info strong{color:var(--g1)}
@@ -196,7 +200,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 ::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 </style>
 </head>
-<body data-version="1.1.2">
+<body data-version="1.2.0">
 
 <!-- ═══ PIN OVERLAY ═══ -->
 <div id="pin-overlay">
@@ -361,6 +365,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
         </div>
         <div class="scaffold-info" id="scaffold-info">
           Legt beim Speichern automatisch <strong>data/[pfad]/data.json</strong> im Repo an und erstellt damit den App-Datenordner. Die Datei kann danach von der App selbst befüllt werden.
+        </div>
+        <!-- ═══ INDEX.HTML UPLOAD (nur bei neuer App) ═══ -->
+        <div style="margin-top:10px">
+          <label class="flbl">App-Datei hochladen (optional)</label>
+          <div id="upload-drop" style="border:1.5px dashed var(--bd2);border-radius:9px;padding:14px;text-align:center;cursor:pointer;transition:all .15s;background:var(--s2)" onclick="document.getElementById('upload-file').click()" ondragover="uploadDragOver(event)" ondragleave="uploadDragLeave(event)" ondrop="uploadDrop(event)">
+            <div id="upload-label" style="font-size:.72rem;color:var(--tx3)">📄 index.html hierher ziehen oder klicken</div>
+          </div>
+          <input type="file" id="upload-file" accept=".html" style="display:none" onchange="uploadFileSelected(this)">
+          <div style="font-size:.58rem;color:var(--tx3);margin-top:4px">Wird als <code style="background:var(--s2);padding:1px 4px;border-radius:3px;font-size:.58rem">[pfad]/index.html</code> ins Repo hochgeladen</div>
         </div>
       </div>
       <div class="frow2">
@@ -704,6 +717,105 @@ async function writeApps(newApps, message) {
 }
 
 // ═══════════════════════════════════════════
+// FILE UPLOAD
+// ═══════════════════════════════════════════
+let uploadFileData = null; // { name, base64 }
+
+function uploadDragOver(e) {
+  e.preventDefault();
+  document.getElementById('upload-drop').classList.add('drag-over');
+}
+
+function uploadDragLeave(e) {
+  document.getElementById('upload-drop').classList.remove('drag-over');
+}
+
+function uploadDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-drop').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processUploadFile(file);
+}
+
+function uploadFileSelected(input) {
+  const file = input.files[0];
+  if (file) processUploadFile(file);
+}
+
+function processUploadFile(file) {
+  if (!file.name.endsWith('.html')) {
+    toast('Nur .html-Dateien erlaubt', 'err');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = btoa(unescape(encodeURIComponent(e.target.result)));
+    uploadFileData = { name: file.name, base64 };
+    const drop = document.getElementById('upload-drop');
+    drop.classList.add('has-file');
+    document.getElementById('upload-label').innerHTML =
+      `✅ <strong style="color:var(--g1)">${esc(file.name)}</strong> <span style="color:var(--tx3);font-size:.65rem">(${(file.size/1024).toFixed(1)} KB)</span>`;
+  };
+  reader.readAsText(file);
+}
+
+function resetUpload() {
+  uploadFileData = null;
+  const drop = document.getElementById('upload-drop');
+  if (drop) {
+    drop.classList.remove('has-file', 'drag-over');
+    document.getElementById('upload-label').innerHTML = '📄 index.html hierher ziehen oder klicken';
+  }
+  const input = document.getElementById('upload-file');
+  if (input) input.value = '';
+}
+
+async function ghPutRaw(path, base64Content, sha, message) {
+  const repo = getRepo();
+  const token = getToken();
+  if (!token) throw new Error('Kein Token — Read-only');
+  const body = { message, content: base64Content, branch: BRANCH };
+  if (sha) body.sha = sha;
+  let res;
+  try {
+    res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+      method: 'PUT',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json' },
+      body: JSON.stringify(body)
+    });
+  } catch(netErr) {
+    throw new Error('Netzwerkfehler beim Upload');
+  }
+  if (res.status === 409) {
+    const fresh = await ghGet(path);
+    const newSha = fresh ? fresh.sha : null;
+    body.sha = newSha;
+    const retry = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+      method: 'PUT',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json' },
+      body: JSON.stringify(body)
+    });
+    if (!retry.ok) throw new Error('Konflikt beim Upload — Retry fehlgeschlagen');
+    return retry.json();
+  }
+  if (!res.ok) throw new Error('Upload Fehler: ' + res.status);
+  return res.json();
+}
+
+async function uploadIndexHtml(app) {
+  if (!uploadFileData) return { skipped: true };
+  const filePath = `${app.path}/index.html`;
+  // SHA holen falls Datei schon existiert (Update statt Fehler)
+  let sha = null;
+  try {
+    const existing = await ghGet(filePath);
+    if (existing) sha = existing.sha;
+  } catch(e) { /* neue Datei */ }
+  await ghPutRaw(filePath, uploadFileData.base64, sha, `Portal: Upload ${app.path}/index.html für App "${app.name}"`);
+  return { skipped: false, path: filePath };
+}
+
+// ═══════════════════════════════════════════
 // SCAFFOLD — Datenstruktur anlegen
 // ═══════════════════════════════════════════
 
@@ -919,6 +1031,7 @@ function openAddModal() {
   // Scaffold-Option: bei neuer App immer einblenden und aktivieren
   document.getElementById('scaffold-section').style.display = 'block';
   document.getElementById('scaffold-enabled').checked = true;
+  resetUpload();
   renderEmojiGrid();
   openModal('app-modal');
 }
@@ -936,8 +1049,9 @@ function openEditModal(idx) {
   document.getElementById('emoji-preview').textContent = selectedEmoji;
   document.getElementById('emoji-custom').value = '';
   document.getElementById('app-delete-btn').style.display = 'block';
-  // Scaffold-Option: beim Bearbeiten ausblenden
+  // Scaffold+Upload: beim Bearbeiten ausblenden
   document.getElementById('scaffold-section').style.display = 'none';
+  resetUpload();
   renderEmojiGrid();
   openModal('app-modal');
 }
@@ -1003,6 +1117,21 @@ async function saveApp() {
       toast('Scaffold Fehler: ' + e.message, 'err');
       setSyncStatus('Scaffold fehlgeschlagen');
     }
+  }
+  // index.html hochladen wenn ausgewählt
+  if (uploadFileData) {
+    setSyncStatus('Lade index.html hoch…');
+    try {
+      const upResult = await uploadIndexHtml(app);
+      if (!upResult.skipped) {
+        toast(`✅ ${app.path}/index.html hochgeladen`, 'ok');
+        setSyncStatus('Upload abgeschlossen ' + new Date().toLocaleTimeString('de-CH'));
+      }
+    } catch(e) {
+      toast('Upload Fehler: ' + e.message, 'err');
+      setSyncStatus('Upload fehlgeschlagen');
+    }
+    resetUpload();
   }
 }
 
@@ -1226,4 +1355,4 @@ init();
 </script>
 </body>
 </html>
-<!-- END OF FILE — Version 1.1.2 -->
+<!-- END OF FILE — Version 1.2.0 -->
