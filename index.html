@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<!-- Version 1.0.0 — App Portal -->
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f0f4f8;--surface:#fff;--s2:#f4f6f9;
+  --tx:#1a2b3c;--tx2:#5a7a9a;--tx3:#9ab0c8;
+  --bd:#e2e8f0;--bd2:#dde4ec;
+  --g1:#1a6b4a;--g2:#1a5080;
+  --o1:#c85a0a;--o2:#e07820;
+  --acc:#f0f7f4;
+  --dn:#c04040;--dnb:#fde8e8;
+  --sh:0 2px 10px rgba(0,0,0,.07);--shlg:0 6px 28px rgba(0,0,0,.13);
+}
+[data-theme="dark"]{
+  --bg:#111820;--surface:#1a2232;--s2:#1e2a3a;
+  --tx:#e8f0f8;--tx2:#7a9ab8;--tx3:#4a6a88;
+  --bd:#2a3a4a;--bd2:#253344;--acc:#1a2a38;
+  --dn:#e04040;--dnb:#3a1818;
+  --sh:0 2px 10px rgba(0,0,0,.3);--shlg:0 6px 28px rgba(0,0,0,.5);
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);display:flex;flex-direction:column;overflow:hidden;transition:background .3s,color .3s}
+
+/* ═══ TOPBAR ═══ */
+#topbar{background:var(--surface);border-bottom:1px solid var(--bd);padding:0 16px;display:flex;align-items:center;height:50px;flex-shrink:0;box-shadow:var(--sh);z-index:200;gap:10px}
+#topbar h1{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--tx);white-space:nowrap}
+#topbar h1 span{color:var(--o1)}
+#hdr-r{display:flex;gap:6px;margin-left:auto;align-items:center}
+.tbtn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border:none;border-radius:14px;font-family:'DM Sans',sans-serif;font-size:.68rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .2s}
+.tbtn:active{opacity:.72}
+.bg{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;box-shadow:0 1px 5px rgba(0,0,0,.15)}
+.bo{background:linear-gradient(135deg,var(--o1),var(--o2));color:#fff;box-shadow:0 1px 5px rgba(0,0,0,.15)}
+.bgh{background:var(--s2);border:1px solid var(--bd2);color:var(--tx2)}
+
+/* ═══ STATUS BAR ═══ */
+#statusbar{background:var(--s2);border-bottom:1px solid var(--bd);padding:5px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;font-size:.62rem;color:var(--tx3);flex-wrap:wrap}
+.sb-item{display:flex;align-items:center;gap:5px}
+.sb-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sb-dot.ok{background:#1a9a5a}
+.sb-dot.warn{background:var(--o1)}
+.sb-dot.err{background:var(--dn)}
+.sb-val{font-weight:600;color:var(--tx2)}
+
+/* ═══ MAIN SCROLL ═══ */
+#main{flex:1;overflow-y:auto;padding:20px 16px 40px}
+#main::-webkit-scrollbar{width:4px}
+#main::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+
+/* ═══ SECTION HEADER ═══ */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sec-hdr h2{font-family:'Playfair Display',serif;font-size:.92rem;color:var(--tx)}
+.sec-sub{font-size:.61rem;color:var(--tx3);margin-top:2px}
+
+/* ═══ APP LIST ═══ */
+#app-list{display:flex;flex-direction:column;gap:8px;max-width:680px;margin:0 auto}
+
+/* ═══ APP ROW ═══ */
+.app-row{
+  background:var(--surface);border:1.5px solid var(--bd);border-radius:13px;
+  padding:13px 14px;display:flex;align-items:center;gap:12px;
+  transition:all .15s;position:relative;
+  box-shadow:var(--sh);
+}
+.app-row.hidden-app{opacity:.5}
+.app-row.dragging{opacity:.35;border-style:dashed}
+.app-row.drag-over{border-color:var(--g1);background:var(--acc)}
+.drag-handle{font-size:1rem;color:var(--tx3);cursor:grab;padding:2px 4px;flex-shrink:0;line-height:1;user-select:none}
+.drag-handle:active{cursor:grabbing}
+.app-icon{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--acc),var(--s2));border:1px solid var(--bd2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0}
+.app-info{flex:1;min-width:0}
+.app-name{font-size:.82rem;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-meta{font-size:.61rem;color:var(--tx3);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.app-path{font-family:monospace;font-size:.58rem;background:var(--s2);padding:1px 5px;border-radius:4px;border:1px solid var(--bd2);color:var(--tx2)}
+.status-badge{font-size:.55rem;font-weight:700;padding:2px 7px;border-radius:6px;border:1px solid;flex-shrink:0}
+.badge-active{background:#d4f0e0;color:#1a6a3a;border-color:#9ad8b0}
+.badge-hidden{background:var(--s2);color:var(--tx3);border-color:var(--bd2)}
+[data-theme="dark"] .badge-active{background:#1a3528;color:#6ee89a;border-color:#2a6a48}
+.app-actions{display:flex;gap:5px;flex-shrink:0}
+.ib{width:28px;height:28px;border-radius:7px;background:var(--s2);border:1px solid var(--bd2);color:var(--tx2);font-size:.75rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;flex-shrink:0}
+.ib:hover{background:var(--bd)}
+.ib.dn:hover{background:var(--dnb);border-color:var(--dn);color:var(--dn)}
+.ib.go{background:linear-gradient(135deg,var(--g1),var(--g2));border-color:transparent;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.ib.go:hover{opacity:.85}
+
+/* ═══ EMPTY STATE ═══ */
+.empty{text-align:center;padding:40px 20px;color:var(--tx3)}
+.empty .big{font-size:2.2rem;display:block;margin-bottom:10px}
+.empty p{font-size:.75rem;line-height:1.8}
+
+/* ═══ ADD ROW ═══ */
+.add-row{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  width:100%;max-width:680px;margin:0 auto;
+  padding:12px;border:1.5px dashed var(--bd2);border-radius:13px;
+  background:none;color:var(--tx3);font-family:'DM Sans',sans-serif;
+  font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s
+}
+.add-row:hover{border-color:var(--g1);color:var(--g1);background:var(--acc)}
+
+/* ═══ SETUP SECTION ═══ */
+#setup-section{max-width:680px;margin:0 auto 20px;background:var(--surface);border:1.5px solid var(--o1);border-radius:13px;overflow:hidden;box-shadow:var(--sh)}
+.setup-hdr{background:linear-gradient(135deg,var(--o1),var(--o2));padding:10px 14px;display:flex;align-items:center;gap:8px}
+.setup-hdr span{font-family:'Playfair Display',serif;color:#fff;font-size:.85rem}
+.setup-body{padding:14px;display:flex;flex-direction:column;gap:10px}
+.setup-row{display:flex;gap:8px;align-items:flex-end}
+.flbl{font-size:.6rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px}
+.fi{width:100%;padding:9px 11px;border:1.5px solid var(--bd2);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--tx);background:var(--s2);outline:none;transition:border .15s;-webkit-appearance:none}
+.fi:focus{border-color:var(--g1);background:var(--surface)}
+.fi-wrap{flex:1}
+
+/* ═══ MODAL ═══ */
+.moverlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,20,40,.6);backdrop-filter:blur(4px);overflow-y:auto;padding:20px 0 40px;align-items:flex-start;justify-content:center}
+.moverlay.open{display:flex}
+.mbox{background:var(--surface);margin:0 auto;border-radius:16px;overflow:hidden;box-shadow:var(--shlg);max-width:440px;width:calc(100% - 24px)}
+.mhdr{background:linear-gradient(135deg,var(--g1),var(--g2));padding:13px 16px;display:flex;align-items:center;justify-content:space-between}
+.mhdr.or{background:linear-gradient(135deg,var(--o1),var(--o2))}
+.mhdr-t{font-family:'Playfair Display',serif;color:#fff;font-size:.92rem}
+.mcls{background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.mbody{padding:16px;display:flex;flex-direction:column;gap:12px}
+.fsave{flex:1;padding:11px;background:linear-gradient(135deg,var(--g1),var(--g2));border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;color:#fff;cursor:pointer}
+.fsave.or{background:linear-gradient(135deg,var(--o1),var(--o2))}
+.fcancel{padding:11px 14px;background:var(--s2);border:1.5px solid var(--bd2);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.79rem;font-weight:600;color:var(--tx2);cursor:pointer}
+.fdanger{width:100%;padding:10px;background:var(--dnb);border:1.5px solid var(--dn);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.79rem;font-weight:600;color:var(--dn);cursor:pointer}
+.frow2{display:flex;gap:8px}
+.emoji-grid{display:flex;flex-wrap:wrap;gap:6px;max-height:160px;overflow-y:auto;padding:4px 0}
+.emoji-grid::-webkit-scrollbar{width:3px}
+.emoji-grid::-webkit-scrollbar-thumb{background:var(--bd2)}
+.emoji-btn{width:36px;height:36px;font-size:1.3rem;border:2px solid transparent;border-radius:8px;background:var(--s2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s}
+.emoji-btn:hover{background:var(--bd);transform:scale(1.1)}
+.emoji-btn.sel{border-color:var(--g1);background:var(--acc)}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
+.toggle-lbl{font-size:.78rem;color:var(--tx)}
+.toggle{position:relative;width:40px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--bd2);border-radius:11px;cursor:pointer;transition:.2s}
+.toggle-slider:before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.toggle input:checked+.toggle-slider{background:var(--g1)}
+.toggle input:checked+.toggle-slider:before{transform:translateX(18px)}
+
+/* ═══ PIN OVERLAY ═══ */
+#pin-overlay{position:fixed;inset:0;z-index:99999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+#pin-overlay.hidden{display:none}
+.pin-logo{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--tx);margin-bottom:6px;text-align:center}
+.pin-logo span{color:var(--o1)}
+.pin-sub{font-size:.74rem;color:var(--tx3);margin-bottom:32px;text-align:center}
+.pin-dots{display:flex;gap:14px;margin-bottom:28px}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--bd2);background:transparent;transition:all .15s}
+.pin-dot.filled{background:var(--o1);border-color:var(--o1)}
+.pin-dot.err{background:var(--dn);border-color:var(--dn)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,72px);gap:10px}
+.pin-btn{width:72px;height:72px;border-radius:16px;border:1.5px solid var(--bd2);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:1.3rem;font-weight:600;color:var(--tx);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:var(--sh)}
+.pin-btn:active{background:var(--s2);transform:scale(.95)}
+.pin-btn.del{font-size:1rem;color:var(--tx3)}
+.pin-btn.empty{background:transparent;border-color:transparent;box-shadow:none;cursor:default}
+.pin-err-msg{font-size:.7rem;color:var(--dn);margin-top:18px;height:18px;text-align:center}
+.pin-setup-hint{font-size:.68rem;color:var(--tx3);margin-top:20px;text-align:center;line-height:1.6}
+
+/* ═══ TOAST ═══ */
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(14px);z-index:99999;background:#1a2b3c;color:#fff;padding:9px 18px;border-radius:18px;font-size:.74rem;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{background:linear-gradient(135deg,var(--g1),var(--g2))}
+#toast.err{background:linear-gradient(135deg,#c04040,#a02020)}
+
+/* ═══ PIN CHANGE MODAL ═══ */
+.pin-step{display:none}
+.pin-step.active{display:flex;flex-direction:column;align-items:center;gap:12px}
+.pin-step .pin-dots{margin-bottom:8px}
+.pin-step .pin-pad{margin-top:4px}
+
+/* ═══ CONFIRM MODAL ═══ */
+#confirm-overlay{display:none;position:fixed;inset:0;z-index:19999;background:rgba(10,20,40,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+#confirm-overlay.open{display:flex}
+.confirm-box{background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--shlg);max-width:340px;width:calc(100% - 24px)}
+.confirm-body{padding:20px 16px 16px;text-align:center}
+.confirm-icon{font-size:2rem;margin-bottom:10px}
+.confirm-msg{font-size:.82rem;color:var(--tx);line-height:1.6;margin-bottom:16px}
+.confirm-btns{display:flex;gap:8px}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- ═══ PIN OVERLAY ═══ -->
+<div id="pin-overlay">
+  <div class="pin-logo">App <span>Portal</span></div>
+  <div class="pin-sub" id="pin-sub">6-stelligen PIN eingeben</div>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+    <div class="pin-dot" id="pd4"></div>
+    <div class="pin-dot" id="pd5"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinKey('1')">1</button>
+    <button class="pin-btn" onclick="pinKey('2')">2</button>
+    <button class="pin-btn" onclick="pinKey('3')">3</button>
+    <button class="pin-btn" onclick="pinKey('4')">4</button>
+    <button class="pin-btn" onclick="pinKey('5')">5</button>
+    <button class="pin-btn" onclick="pinKey('6')">6</button>
+    <button class="pin-btn" onclick="pinKey('7')">7</button>
+    <button class="pin-btn" onclick="pinKey('8')">8</button>
+    <button class="pin-btn" onclick="pinKey('9')">9</button>
+    <button class="pin-btn empty"></button>
+    <button class="pin-btn" onclick="pinKey('0')">0</button>
+    <button class="pin-btn del" onclick="pinDel()">⌫</button>
+  </div>
+  <div class="pin-err-msg" id="pin-err"></div>
+  <div class="pin-setup-hint" id="pin-setup-hint" style="display:none">
+    Kein PIN gesetzt.<br>Wähle einen 6-stelligen PIN um fortzufahren.
+  </div>
+</div>
+
+<!-- ═══ TOPBAR ═══ -->
+<div id="topbar">
+  <h1>App <span>Portal</span></h1>
+  <div id="hdr-r">
+    <button class="tbtn bgh" onclick="openPinModal()">🔑 PIN</button>
+    <button class="tbtn bgh" id="theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="tbtn bg" onclick="openAddModal()">＋ App</button>
+  </div>
+</div>
+
+<!-- ═══ STATUS BAR ═══ -->
+<div id="statusbar">
+  <div class="sb-item">
+    <div class="sb-dot" id="sb-token-dot"></div>
+    <span id="sb-token-lbl">Token: —</span>
+  </div>
+  <div class="sb-item">
+    <div class="sb-dot" id="sb-repo-dot"></div>
+    <span id="sb-repo-lbl">Repo: —</span>
+  </div>
+  <div class="sb-item">
+    <span id="sb-apps-lbl">— Apps</span>
+  </div>
+  <div class="sb-item" id="sb-sync-item" style="display:none">
+    <span id="sb-sync-lbl"></span>
+  </div>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div id="main">
+
+  <!-- Setup section (shown when not configured) -->
+  <div id="setup-section">
+    <div class="setup-hdr">
+      <span>⚙️ Einrichtung</span>
+    </div>
+    <div class="setup-body">
+      <div>
+        <label class="flbl">GitHub Repository (username/repo-name)</label>
+        <div class="setup-row">
+          <div class="fi-wrap">
+            <input class="fi" id="setup-repo" type="text" placeholder="z.B. meinname/meine-apps" autocomplete="off" autocorrect="off" spellcheck="false">
+          </div>
+          <button class="tbtn bg" onclick="saveRepo()">Speichern</button>
+        </div>
+      </div>
+      <div>
+        <label class="flbl">GitHub Token (wird in sessionStorage gespeichert)</label>
+        <div class="setup-row">
+          <div class="fi-wrap">
+            <input class="fi" id="setup-token" type="password" placeholder="ghp_..." autocomplete="off">
+          </div>
+          <button class="tbtn bg" onclick="saveToken()">Speichern</button>
+        </div>
+      </div>
+      <div style="font-size:.62rem;color:var(--tx3);line-height:1.7">
+        ℹ️ Token benötigt <strong style="color:var(--tx2)">repo</strong>-Berechtigung. Er wird nur im SessionStorage dieser Browsersitzung gehalten — nie im Code oder GitHub.
+      </div>
+    </div>
+  </div>
+
+  <!-- App list header -->
+  <div class="sec-hdr" style="max-width:680px;margin:0 auto 12px">
+    <div>
+      <h2>Meine Apps</h2>
+      <div class="sec-sub" id="list-sub">Lade Apps…</div>
+    </div>
+    <button class="tbtn bgh" onclick="loadApps()">↻ Sync</button>
+  </div>
+
+  <!-- App list -->
+  <div id="app-list">
+    <div class="empty" id="empty-state" style="display:none">
+      <span class="big">📦</span>
+      <p>Noch keine Apps vorhanden.<br>Klicke auf <strong>＋ App</strong> um die erste App hinzuzufügen.</p>
+    </div>
+  </div>
+
+  <!-- Add button at bottom -->
+  <button class="add-row" style="margin-top:10px" onclick="openAddModal()">＋ Neue App hinzufügen</button>
+
+</div>
+
+<!-- ═══ APP MODAL (Add / Edit) ═══ -->
+<div class="moverlay" id="app-modal">
+  <div class="mbox">
+    <div class="mhdr" id="app-modal-hdr">
+      <span class="mhdr-t" id="app-modal-title">Neue App</span>
+      <button class="mcls" onclick="closeModal('app-modal')">✕</button>
+    </div>
+    <div class="mbody">
+      <div>
+        <label class="flbl">Icon (Emoji)</label>
+        <div style="margin-bottom:6px;display:flex;align-items:center;gap:8px">
+          <div id="emoji-preview" style="width:42px;height:42px;border-radius:10px;background:var(--s2);border:1.5px solid var(--bd2);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0">📦</div>
+          <input class="fi" id="emoji-custom" style="flex:1" type="text" placeholder="Eigenes Emoji eingeben…" maxlength="2" oninput="onEmojiCustom(this.value)">
+        </div>
+        <div class="emoji-grid" id="emoji-grid"></div>
+      </div>
+      <div>
+        <label class="flbl">App Name</label>
+        <input class="fi" id="app-name" type="text" placeholder="z.B. Tour Manager" maxlength="60">
+      </div>
+      <div>
+        <label class="flbl">Beschreibung</label>
+        <input class="fi" id="app-desc" type="text" placeholder="Kurze Beschreibung…" maxlength="120">
+      </div>
+      <div>
+        <label class="flbl">Verzeichnis im Repo (Pfad)</label>
+        <input class="fi" id="app-path" type="text" placeholder="z.B. tour-manager" autocomplete="off" autocorrect="off" spellcheck="false" oninput="sanitizePath(this)">
+        <div style="font-size:.58rem;color:var(--tx3);margin-top:4px">Wird zu <code style="background:var(--s2);padding:1px 4px;border-radius:3px;font-size:.58rem">{repo}/{pfad}/index.html</code></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-lbl">App sichtbar (aktiv)</span>
+        <label class="toggle">
+          <input type="checkbox" id="app-active" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="frow2">
+        <button class="fcancel" onclick="closeModal('app-modal')">Abbrechen</button>
+        <button class="fsave" id="app-save-btn" onclick="saveApp()">Speichern</button>
+      </div>
+      <button class="fdanger" id="app-delete-btn" style="display:none" onclick="deleteApp()">App löschen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PIN CHANGE MODAL ═══ -->
+<div class="moverlay" id="pin-modal">
+  <div class="mbox">
+    <div class="mhdr or">
+      <span class="mhdr-t">🔑 PIN Einstellungen</span>
+      <button class="mcls" onclick="closeModal('pin-modal')">✕</button>
+    </div>
+    <div class="mbody">
+      <div id="pin-change-ui">
+        <!-- Step 1: New PIN -->
+        <div class="pin-step active" id="pstep1">
+          <div style="font-size:.75rem;color:var(--tx2);text-align:center">Neuen 6-stelligen PIN wählen</div>
+          <div class="pin-dots" id="pm-dots1">
+            <div class="pin-dot" id="pmd1-0"></div><div class="pin-dot" id="pmd1-1"></div>
+            <div class="pin-dot" id="pmd1-2"></div><div class="pin-dot" id="pmd1-3"></div>
+            <div class="pin-dot" id="pmd1-4"></div><div class="pin-dot" id="pmd1-5"></div>
+          </div>
+          <div class="pin-pad">
+            <button class="pin-btn" onclick="pmKey('1')">1</button><button class="pin-btn" onclick="pmKey('2')">2</button><button class="pin-btn" onclick="pmKey('3')">3</button>
+            <button class="pin-btn" onclick="pmKey('4')">4</button><button class="pin-btn" onclick="pmKey('5')">5</button><button class="pin-btn" onclick="pmKey('6')">6</button>
+            <button class="pin-btn" onclick="pmKey('7')">7</button><button class="pin-btn" onclick="pmKey('8')">8</button><button class="pin-btn" onclick="pmKey('9')">9</button>
+            <button class="pin-btn empty"></button><button class="pin-btn" onclick="pmKey('0')">0</button><button class="pin-btn del" onclick="pmDel()">⌫</button>
+          </div>
+        </div>
+        <!-- Step 2: Confirm PIN -->
+        <div class="pin-step" id="pstep2">
+          <div style="font-size:.75rem;color:var(--tx2);text-align:center">PIN bestätigen</div>
+          <div class="pin-dots" id="pm-dots2">
+            <div class="pin-dot" id="pmd2-0"></div><div class="pin-dot" id="pmd2-1"></div>
+            <div class="pin-dot" id="pmd2-2"></div><div class="pin-dot" id="pmd2-3"></div>
+            <div class="pin-dot" id="pmd2-4"></div><div class="pin-dot" id="pmd2-5"></div>
+          </div>
+          <div class="pin-pad">
+            <button class="pin-btn" onclick="pmKey2('1')">1</button><button class="pin-btn" onclick="pmKey2('2')">2</button><button class="pin-btn" onclick="pmKey2('3')">3</button>
+            <button class="pin-btn" onclick="pmKey2('4')">4</button><button class="pin-btn" onclick="pmKey2('5')">5</button><button class="pin-btn" onclick="pmKey2('6')">6</button>
+            <button class="pin-btn" onclick="pmKey2('7')">7</button><button class="pin-btn" onclick="pmKey2('8')">8</button><button class="pin-btn" onclick="pmKey2('9')">9</button>
+            <button class="pin-btn empty"></button><button class="pin-btn" onclick="pmKey2('0')">0</button><button class="pin-btn del" onclick="pmDel2()">⌫</button>
+          </div>
+          <div class="pin-err-msg" id="pm-err"></div>
+        </div>
+      </div>
+      <div style="margin-top:4px">
+        <button class="fdanger" onclick="clearPin()">PIN löschen (Schutz deaktivieren)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CONFIRM MODAL ═══ -->
+<div id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-body">
+      <div class="confirm-icon" id="confirm-icon">⚠️</div>
+      <div class="confirm-msg" id="confirm-msg"></div>
+      <div class="confirm-btns">
+        <button class="fcancel" style="flex:1" onclick="confirmResolve(false)">Abbrechen</button>
+        <button class="fsave or" style="flex:1" onclick="confirmResolve(true)" id="confirm-ok-btn">Löschen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let apps = [];
+let editingId = null;
+let selectedEmoji = '📦';
+let pinBuffer = '';
+let pinLocked = false;
+let pmBuffer1 = '';
+let pmBuffer2 = '';
+let pmStep = 1;
+let confirmResolve = null;
+let dragSrcIdx = null;
+
+const STORAGE_KEY_APPS = 'portal_apps_cache';
+const STORAGE_KEY_REPO = 'portal_repo';
+const STORAGE_KEY_THEME = 'portal_theme';
+const DATA_PATH = 'data/apps.json';
+const BRANCH = 'main';
+
+const EMOJI_LIST = [
+  '📦','🚀','🗺️','🗃️','📊','🔧','🎯','📱','💻','🌍',
+  '🚲','⛺','🏔️','🌊','✈️','🏕️','🎒','🗓️','📸','🎵',
+  '💡','🔑','📝','📋','🛠️','⚙️','🔍','📡','🧭','🌐',
+  '🏠','🏢','🎨','📰','🧩','🎲','🌱','🔗','💬','📌'
+];
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+function init() {
+  applyTheme();
+  renderEmojiGrid();
+  checkPinOnLoad();
+  updateStatusBar();
+  loadCachedApps();
+
+  // Pre-fill repo input if saved
+  const repo = localStorage.getItem(STORAGE_KEY_REPO);
+  if (repo) {
+    const el = document.getElementById('setup-repo');
+    if (el) el.value = repo;
+    document.getElementById('setup-section').style.display = 'none';
+    loadApps();
+  } else {
+    document.getElementById('list-sub').textContent = 'Repo noch nicht konfiguriert';
+    document.getElementById('empty-state').style.display = 'block';
+  }
+}
+
+// ═══════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════
+function applyTheme() {
+  const dark = localStorage.getItem(STORAGE_KEY_THEME) === 'dark';
+  document.body.setAttribute('data-theme', dark ? 'dark' : '');
+  document.getElementById('theme-btn').textContent = dark ? '☀️' : '🌙';
+}
+function toggleTheme() {
+  const isDark = document.body.getAttribute('data-theme') === 'dark';
+  localStorage.setItem(STORAGE_KEY_THEME, isDark ? '' : 'dark');
+  applyTheme();
+}
+
+// ═══════════════════════════════════════════
+// SETUP / CONFIG
+// ═══════════════════════════════════════════
+function saveRepo() {
+  const val = document.getElementById('setup-repo').value.trim();
+  if (!val || !val.includes('/')) { toast('Ungültiges Format — bitte username/repo-name', 'err'); return; }
+  localStorage.setItem(STORAGE_KEY_REPO, val);
+  document.getElementById('setup-section').style.display = 'none';
+  updateStatusBar();
+  loadApps();
+  toast('Repo gespeichert', 'ok');
+}
+
+function saveToken() {
+  const val = document.getElementById('setup-token').value.trim();
+  if (!val) { toast('Kein Token eingegeben', 'err'); return; }
+  sessionStorage.setItem('gh_token', val);
+  document.getElementById('setup-token').value = '';
+  updateStatusBar();
+  toast('Token gespeichert (Session)', 'ok');
+}
+
+function getRepo() { return localStorage.getItem(STORAGE_KEY_REPO) || ''; }
+function getToken() { return sessionStorage.getItem('gh_token') || ''; }
+function isReadOnly() { return !getToken(); }
+
+function updateStatusBar() {
+  const token = getToken();
+  const repo = getRepo();
+  const tokenDot = document.getElementById('sb-token-dot');
+  const tokenLbl = document.getElementById('sb-token-lbl');
+  const repoDot = document.getElementById('sb-repo-dot');
+  const repoLbl = document.getElementById('sb-repo-lbl');
+
+  if (token) {
+    tokenDot.className = 'sb-dot ok';
+    tokenLbl.textContent = 'Token: ✓ gesetzt';
+  } else {
+    tokenDot.className = 'sb-dot warn';
+    tokenLbl.textContent = 'Token: Read-only';
+  }
+  if (repo) {
+    repoDot.className = 'sb-dot ok';
+    repoLbl.textContent = 'Repo: ' + repo;
+  } else {
+    repoDot.className = 'sb-dot err';
+    repoLbl.textContent = 'Repo: nicht konfiguriert';
+  }
+  document.getElementById('sb-apps-lbl').textContent = apps.length + ' App' + (apps.length !== 1 ? 's' : '');
+}
+
+function showSetup() {
+  document.getElementById('setup-section').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════
+// GITHUB API
+// ═══════════════════════════════════════════
+async function ghGet(path) {
+  const repo = getRepo();
+  const token = getToken();
+  const headers = { 'Accept': 'application/vnd.github+json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${BRANCH}`, { headers });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error('GitHub GET Fehler: ' + res.status);
+  return res.json();
+}
+
+async function ghPut(path, content, sha, message) {
+  const repo = getRepo();
+  const token = getToken();
+  if (!token) throw new Error('Kein Token — Read-only');
+  const body = {
+    message,
+    content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
+    branch: BRANCH
+  };
+  if (sha) body.sha = sha;
+  const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+    method: 'PUT',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json' },
+    body: JSON.stringify(body)
+  });
+  if (res.status === 409) {
+    // Conflict: re-fetch SHA and retry once
+    const fresh = await ghGet(path);
+    const newSha = fresh ? fresh.sha : null;
+    body.sha = newSha;
+    const retry = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+      method: 'PUT',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json' },
+      body: JSON.stringify(body)
+    });
+    if (!retry.ok) throw new Error('GitHub Konflikt – Retry fehlgeschlagen');
+    return retry.json();
+  }
+  if (!res.ok) throw new Error('GitHub PUT Fehler: ' + res.status);
+  return res.json();
+}
+
+// SHA-first write
+async function writeApps(newApps, message) {
+  const existing = await ghGet(DATA_PATH);
+  const sha = existing ? existing.sha : null;
+  return ghPut(DATA_PATH, newApps, sha, message || 'Portal: Update apps.json');
+}
+
+// ═══════════════════════════════════════════
+// LOAD APPS
+// ═══════════════════════════════════════════
+function loadCachedApps() {
+  try {
+    const cached = localStorage.getItem(STORAGE_KEY_APPS);
+    if (cached) {
+      apps = JSON.parse(cached);
+      renderApps();
+      updateStatusBar();
+    }
+  } catch(e) {}
+}
+
+async function loadApps() {
+  const repo = getRepo();
+  if (!repo) { toast('Repo nicht konfiguriert', 'err'); showSetup(); return; }
+  setSyncStatus('Lade…');
+  try {
+    const file = await ghGet(DATA_PATH);
+    if (file) {
+      const decoded = decodeURIComponent(escape(atob(file.content.replace(/\n/g,''))));
+      apps = JSON.parse(decoded);
+    } else {
+      apps = [];
+    }
+    localStorage.setItem(STORAGE_KEY_APPS, JSON.stringify(apps));
+    renderApps();
+    updateStatusBar();
+    setSyncStatus('Synchronisiert ' + new Date().toLocaleTimeString('de-CH'));
+    document.getElementById('list-sub').textContent = apps.length + ' Apps geladen';
+  } catch(e) {
+    setSyncStatus('Fehler beim Laden');
+    toast('Fehler: ' + e.message, 'err');
+    document.getElementById('list-sub').textContent = 'Fehler beim Laden';
+  }
+}
+
+function setSyncStatus(msg) {
+  const el = document.getElementById('sb-sync-lbl');
+  const item = document.getElementById('sb-sync-item');
+  el.textContent = msg;
+  item.style.display = 'flex';
+}
+
+// ═══════════════════════════════════════════
+// RENDER APPS
+// ═══════════════════════════════════════════
+function renderApps() {
+  const list = document.getElementById('app-list');
+  const empty = document.getElementById('empty-state');
+  // Remove existing rows
+  list.querySelectorAll('.app-row').forEach(r => r.remove());
+  if (apps.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  apps.forEach((app, idx) => {
+    const row = buildRow(app, idx);
+    list.appendChild(row);
+  });
+}
+
+function buildRow(app, idx) {
+  const div = document.createElement('div');
+  div.className = 'app-row' + (app.active === false ? ' hidden-app' : '');
+  div.dataset.idx = idx;
+  div.draggable = true;
+
+  const repo = getRepo();
+  const url = repo ? `https://${repo.split('/')[0]}.github.io/${repo.split('/')[1]}/${app.path}/index.html` : '#';
+
+  div.innerHTML = `
+    <span class="drag-handle" title="Ziehen zum Sortieren">⠿</span>
+    <div class="app-icon">${app.icon || '📦'}</div>
+    <div class="app-info">
+      <div class="app-name">${esc(app.name)}</div>
+      <div class="app-meta">
+        <span class="status-badge ${app.active === false ? 'badge-hidden' : 'badge-active'}">${app.active === false ? 'Versteckt' : 'Aktiv'}</span>
+        <span class="app-path">${esc(app.path)}/index.html</span>
+        ${app.desc ? `<span>${esc(app.desc)}</span>` : ''}
+      </div>
+    </div>
+    <div class="app-actions">
+      <button class="ib" title="Bearbeiten" onclick="openEditModal(${idx})">✏️</button>
+      <a class="ib go" href="${url}" target="_blank" title="App öffnen">↗</a>
+    </div>
+  `;
+
+  // Drag & Drop
+  div.addEventListener('dragstart', e => {
+    dragSrcIdx = idx;
+    div.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  div.addEventListener('dragend', () => div.classList.remove('dragging'));
+  div.addEventListener('dragover', e => { e.preventDefault(); div.classList.add('drag-over'); });
+  div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+  div.addEventListener('drop', e => {
+    e.preventDefault();
+    div.classList.remove('drag-over');
+    if (dragSrcIdx === null || dragSrcIdx === idx) return;
+    const moved = apps.splice(dragSrcIdx, 1)[0];
+    apps.splice(idx, 0, moved);
+    dragSrcIdx = null;
+    renderApps();
+    saveAppsToGitHub('Reihenfolge geändert');
+  });
+
+  return div;
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════
+// EMOJI GRID
+// ═══════════════════════════════════════════
+function renderEmojiGrid() {
+  const grid = document.getElementById('emoji-grid');
+  grid.innerHTML = '';
+  EMOJI_LIST.forEach(e => {
+    const btn = document.createElement('button');
+    btn.className = 'emoji-btn' + (e === selectedEmoji ? ' sel' : '');
+    btn.textContent = e;
+    btn.onclick = () => selectEmoji(e);
+    grid.appendChild(btn);
+  });
+}
+
+function selectEmoji(e) {
+  selectedEmoji = e;
+  document.getElementById('emoji-preview').textContent = e;
+  document.getElementById('emoji-custom').value = '';
+  renderEmojiGrid();
+}
+
+function onEmojiCustom(val) {
+  if ([...val].length >= 1) {
+    const e = [...val][0];
+    selectedEmoji = e;
+    document.getElementById('emoji-preview').textContent = e;
+    renderEmojiGrid();
+  }
+}
+
+// ═══════════════════════════════════════════
+// APP MODAL
+// ═══════════════════════════════════════════
+function openAddModal() {
+  editingId = null;
+  selectedEmoji = '📦';
+  document.getElementById('app-modal-title').textContent = 'Neue App';
+  document.getElementById('app-modal-hdr').className = 'mhdr';
+  document.getElementById('app-name').value = '';
+  document.getElementById('app-desc').value = '';
+  document.getElementById('app-path').value = '';
+  document.getElementById('app-active').checked = true;
+  document.getElementById('app-delete-btn').style.display = 'none';
+  document.getElementById('emoji-preview').textContent = '📦';
+  document.getElementById('emoji-custom').value = '';
+  renderEmojiGrid();
+  openModal('app-modal');
+}
+
+function openEditModal(idx) {
+  editingId = idx;
+  const app = apps[idx];
+  selectedEmoji = app.icon || '📦';
+  document.getElementById('app-modal-title').textContent = 'App bearbeiten';
+  document.getElementById('app-modal-hdr').className = 'mhdr or';
+  document.getElementById('app-name').value = app.name || '';
+  document.getElementById('app-desc').value = app.desc || '';
+  document.getElementById('app-path').value = app.path || '';
+  document.getElementById('app-active').checked = app.active !== false;
+  document.getElementById('emoji-preview').textContent = selectedEmoji;
+  document.getElementById('emoji-custom').value = '';
+  document.getElementById('app-delete-btn').style.display = 'block';
+  renderEmojiGrid();
+  openModal('app-modal');
+}
+
+function sanitizePath(input) {
+  input.value = input.value.toLowerCase().replace(/[^a-z0-9\-_]/g, '-').replace(/^-+|-+$/g, '');
+}
+
+async function saveApp() {
+  const name = document.getElementById('app-name').value.trim();
+  const desc = document.getElementById('app-desc').value.trim();
+  const path = document.getElementById('app-path').value.trim();
+  const active = document.getElementById('app-active').checked;
+
+  if (!name) { toast('Bitte einen Namen eingeben', 'err'); return; }
+  if (!path) { toast('Bitte einen Pfad eingeben', 'err'); return; }
+
+  if (isReadOnly()) { toast('Read-only — Token setzen um zu speichern', 'err'); return; }
+
+  const app = { id: editingId !== null ? apps[editingId].id : Date.now().toString(36), icon: selectedEmoji, name, desc, path, active, updatedAt: new Date().toISOString() };
+
+  if (editingId !== null) {
+    apps[editingId] = app;
+  } else {
+    apps.push(app);
+  }
+
+  closeModal('app-modal');
+  renderApps();
+  updateStatusBar();
+  await saveAppsToGitHub(editingId !== null ? `App "${name}" bearbeitet` : `App "${name}" hinzugefügt`);
+}
+
+async function deleteApp() {
+  if (editingId === null) return;
+  const app = apps[editingId];
+  const ok = await confirm(`App "${app.name}" wirklich löschen?`, '🗑️');
+  if (!ok) return;
+  if (isReadOnly()) { toast('Read-only — Token setzen um zu löschen', 'err'); return; }
+  apps.splice(editingId, 1);
+  closeModal('app-modal');
+  renderApps();
+  updateStatusBar();
+  await saveAppsToGitHub(`App "${app.name}" gelöscht`);
+}
+
+async function saveAppsToGitHub(message) {
+  setSyncStatus('Speichere…');
+  try {
+    await writeApps(apps, message);
+    localStorage.setItem(STORAGE_KEY_APPS, JSON.stringify(apps));
+    setSyncStatus('Gespeichert ' + new Date().toLocaleTimeString('de-CH'));
+    toast('Gespeichert ✓', 'ok');
+  } catch(e) {
+    setSyncStatus('Fehler beim Speichern');
+    toast('Fehler: ' + e.message, 'err');
+  }
+}
+
+// ═══════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ═══════════════════════════════════════════
+// CONFIRM MODAL
+// ═══════════════════════════════════════════
+function confirm(msg, icon) {
+  return new Promise(resolve => {
+    document.getElementById('confirm-msg').textContent = msg;
+    document.getElementById('confirm-icon').textContent = icon || '⚠️';
+    document.getElementById('confirm-overlay').classList.add('open');
+    confirmResolve = (val) => {
+      document.getElementById('confirm-overlay').classList.remove('open');
+      confirmResolve = null;
+      resolve(val);
+    };
+  });
+}
+
+// ═══════════════════════════════════════════
+// PIN — OVERLAY (APP ACCESS)
+// ═══════════════════════════════════════════
+function checkPinOnLoad() {
+  const hash = localStorage.getItem('portal_pin_hash');
+  if (!hash) {
+    // No PIN set — show setup hint, allow setting a PIN
+    document.getElementById('pin-setup-hint').style.display = 'block';
+    document.getElementById('pin-sub').style.display = 'none';
+    // Bypass overlay — no PIN required
+    document.getElementById('pin-overlay').classList.add('hidden');
+    return;
+  }
+  document.getElementById('pin-overlay').classList.remove('hidden');
+}
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function updatePinDots(buf, prefix) {
+  for (let i = 0; i < 6; i++) {
+    const dot = document.getElementById(`${prefix}${i}`);
+    if (!dot) continue;
+    dot.className = 'pin-dot' + (i < buf.length ? ' filled' : '');
+  }
+}
+
+function pinKey(k) {
+  if (pinLocked || pinBuffer.length >= 6) return;
+  pinBuffer += k;
+  updatePinDots(pinBuffer, 'pd');
+  if (pinBuffer.length === 6) checkPin();
+}
+
+function pinDel() {
+  if (pinLocked) return;
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots(pinBuffer, 'pd');
+  document.getElementById('pin-err').textContent = '';
+}
+
+async function checkPin() {
+  const hash = localStorage.getItem('portal_pin_hash');
+  if (!hash) { document.getElementById('pin-overlay').classList.add('hidden'); return; }
+  const entered = await sha256(pinBuffer);
+  if (entered === hash) {
+    document.getElementById('pin-overlay').classList.add('hidden');
+  } else {
+    pinLocked = true;
+    const dots = document.querySelectorAll('#pin-dots .pin-dot');
+    dots.forEach(d => d.className = 'pin-dot err');
+    document.getElementById('pin-err').textContent = 'Falscher PIN — bitte warte…';
+    setTimeout(() => {
+      pinBuffer = '';
+      pinLocked = false;
+      updatePinDots(pinBuffer, 'pd');
+      document.getElementById('pin-err').textContent = '';
+    }, 3000);
+  }
+}
+
+// ═══════════════════════════════════════════
+// PIN — CHANGE MODAL
+// ═══════════════════════════════════════════
+function openPinModal() {
+  pmBuffer1 = '';
+  pmBuffer2 = '';
+  pmStep = 1;
+  document.getElementById('pstep1').className = 'pin-step active';
+  document.getElementById('pstep2').className = 'pin-step';
+  updatePinDots('', 'pmd1-');
+  updatePinDots('', 'pmd2-');
+  document.getElementById('pm-err').textContent = '';
+  openModal('pin-modal');
+}
+
+function pmKey(k) {
+  if (pmBuffer1.length >= 6) return;
+  pmBuffer1 += k;
+  updatePinDots(pmBuffer1, 'pmd1-');
+  if (pmBuffer1.length === 6) {
+    setTimeout(() => {
+      pmStep = 2;
+      document.getElementById('pstep1').className = 'pin-step';
+      document.getElementById('pstep2').className = 'pin-step active';
+    }, 200);
+  }
+}
+function pmDel() { pmBuffer1 = pmBuffer1.slice(0,-1); updatePinDots(pmBuffer1,'pmd1-'); }
+
+function pmKey2(k) {
+  if (pmBuffer2.length >= 6) return;
+  pmBuffer2 += k;
+  updatePinDots(pmBuffer2, 'pmd2-');
+  if (pmBuffer2.length === 6) confirmPinChange();
+}
+function pmDel2() { pmBuffer2 = pmBuffer2.slice(0,-1); updatePinDots(pmBuffer2,'pmd2-'); }
+
+async function confirmPinChange() {
+  if (pmBuffer1 !== pmBuffer2) {
+    document.getElementById('pm-err').textContent = 'PINs stimmen nicht überein';
+    const dots2 = document.querySelectorAll('#pm-dots2 .pin-dot');
+    dots2.forEach(d => { d.className = 'pin-dot err'; });
+    setTimeout(() => { pmBuffer2 = ''; updatePinDots('','pmd2-'); document.getElementById('pm-err').textContent = ''; }, 1500);
+    return;
+  }
+  const hash = await sha256(pmBuffer1);
+  localStorage.setItem('portal_pin_hash', hash);
+  closeModal('pin-modal');
+  toast('PIN gespeichert ✓', 'ok');
+}
+
+function clearPin() {
+  localStorage.removeItem('portal_pin_hash');
+  closeModal('pin-modal');
+  toast('PIN gelöscht — kein Schutz aktiv', '');
+}
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+let toastTimer;
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+}
+
+// ═══════════════════════════════════════════
+// KEYBOARD SUPPORT
+// ═══════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  // PIN overlay
+  if (!document.getElementById('pin-overlay').classList.contains('hidden')) {
+    if (e.key >= '0' && e.key <= '9') pinKey(e.key);
+    if (e.key === 'Backspace') pinDel();
+    return;
+  }
+  // PIN modal
+  if (document.getElementById('pin-modal').classList.contains('open')) {
+    if (pmStep === 1) {
+      if (e.key >= '0' && e.key <= '9') pmKey(e.key);
+      if (e.key === 'Backspace') pmDel();
+    } else {
+      if (e.key >= '0' && e.key <= '9') pmKey2(e.key);
+      if (e.key === 'Backspace') pmDel2();
+    }
+    return;
+  }
+  if (e.key === 'Escape') {
+    closeModal('app-modal');
+    closeModal('pin-modal');
+  }
+});
+
+// Close modals on overlay click
+document.querySelectorAll('.moverlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); });
+});
+document.getElementById('confirm-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('confirm-overlay') && confirmResolve) confirmResolve(false);
+});
+
+// ═══════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
