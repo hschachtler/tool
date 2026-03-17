@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 1.0.0 — App Portal -->
+<!-- Version 1.0.2 — App Portal -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -110,7 +110,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .setup-body{padding:14px;display:flex;flex-direction:column;gap:10px}
 .setup-row{display:flex;gap:8px;align-items:flex-end}
 .flbl{font-size:.6rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px}
-.fi{width:100%;padding:9px 11px;border:1.5px solid var(--bd2);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--tx);background:var(--s2);outline:none;transition:border .15s;-webkit-appearance:none}
+.fi{width:100%;padding:9px 11px;border:1.5px solid var(--bd2);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:16px;color:var(--tx);background:var(--s2);outline:none;transition:border .15s;-webkit-appearance:none}
 .fi:focus{border-color:var(--g1);background:var(--surface)}
 .fi-wrap{flex:1}
 
@@ -187,7 +187,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 ::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 </style>
 </head>
-<body>
+<body data-version="1.0.2">
 
 <!-- ═══ PIN OVERLAY ═══ -->
 <div id="pin-overlay">
@@ -563,6 +563,7 @@ function saveTokenFromModal() {
 }
 
 
+function saveRepo() {
   const val = document.getElementById('setup-repo').value.trim();
   if (!val || !val.includes('/')) { toast('Ungültiges Format — bitte username/repo-name', 'err'); return; }
   localStorage.setItem(STORAGE_KEY_REPO, val);
