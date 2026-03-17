@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 1.1.1 — App Portal -->
+<!-- Version 1.1.2 — App Portal -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -196,7 +196,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 ::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 </style>
 </head>
-<body data-version="1.1.1">
+<body data-version="1.1.2">
 
 <!-- ═══ PIN OVERLAY ═══ -->
 <div id="pin-overlay">
@@ -360,7 +360,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
           </label>
         </div>
         <div class="scaffold-info" id="scaffold-info">
-          Legt beim Speichern automatisch <strong>data/[pfad].json</strong> mit einer leeren Grundstruktur im Repo an. Die Datei kann danach von der App selbst befüllt werden.
+          Legt beim Speichern automatisch <strong>data/[pfad]/data.json</strong> im Repo an und erstellt damit den App-Datenordner. Die Datei kann danach von der App selbst befüllt werden.
         </div>
       </div>
       <div class="frow2">
@@ -724,22 +724,21 @@ function buildScaffoldData(app) {
   };
 }
 
-// Legt data/[app-path].json auf GitHub an — nur wenn nicht bereits vorhanden
+// Legt data/[app-path]/data.json auf GitHub an — erzeugt Ordner implizit
 async function scaffoldAppData(app) {
-  const dataFilePath = `data/${app.path}.json`;
+  const dataFilePath = `data/${app.path}/data.json`;
   let existing = null;
   try {
     existing = await ghGet(dataFilePath);
   } catch(e) {
-    // Fehler beim Prüfen → trotzdem versuchen
+    // Netzwerkfehler beim Prüfen — trotzdem PUT versuchen
   }
   if (existing) {
-    toast(`📂 ${dataFilePath} existiert bereits — übersprungen`, '');
+    toast(`📂 data/${app.path}/ existiert bereits — übersprungen`, '');
     return { skipped: true };
   }
   const scaffold = buildScaffoldData(app);
-  // SHA null → neue Datei anlegen
-  await ghPut(dataFilePath, scaffold, null, `Portal: Scaffold data/${app.path}.json für App "${app.name}"`);
+  await ghPut(dataFilePath, scaffold, null, `Portal: Scaffold data/${app.path}/data.json für App "${app.name}"`);
   return { skipped: false, path: dataFilePath };
 }
 
@@ -997,7 +996,7 @@ async function saveApp() {
     try {
       const result = await scaffoldAppData(app);
       if (!result.skipped) {
-        toast(`📂 data/${app.path}.json angelegt ✓`, 'ok');
+        toast(`📂 data/${app.path}/ angelegt ✓`, 'ok');
         setSyncStatus('Datenstruktur angelegt ' + new Date().toLocaleTimeString('de-CH'));
       }
     } catch(e) {
@@ -1227,4 +1226,4 @@ init();
 </script>
 </body>
 </html>
-<!-- END OF FILE — Version 1.1.1 -->
+<!-- END OF FILE — Version 1.1.2 -->
