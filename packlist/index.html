@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 1.3.0 -->
+<!-- Version 1.4.0 -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -285,73 +285,35 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .col-ort.dragging{opacity:.35}
 .th-drag-handle{position:absolute;left:3px;top:50%;transform:translateY(-50%);font-size:.6rem;color:var(--tx3);line-height:1;pointer-events:none;user-select:none}
 
-/* ═══ PIN OVERLAY ═══ */
-#pin-overlay{
-  position:fixed;inset:0;z-index:9999;
-  background:var(--bg);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:env(safe-area-inset-top,16px) env(safe-area-inset-right,16px) env(safe-area-inset-bottom,16px) env(safe-area-inset-left,16px);
-}
-#pin-overlay.hidden{display:none}
-.pin-logo{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--tx);margin-bottom:6px}
-.pin-logo span{color:var(--o1)}
-.pin-sub{font-size:.72rem;color:var(--tx3);margin-bottom:32px}
-.pin-dots{display:flex;gap:12px;margin-bottom:28px}
-.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--bd2);background:transparent;transition:all .15s}
-.pin-dot.filled{background:var(--g1);border-color:var(--g1)}
-.pin-dot.error{background:var(--dn);border-color:var(--dn)}
-.pin-grid{display:grid;grid-template-columns:repeat(3,72px);gap:10px}
-.pin-key{width:72px;height:56px;border:1.5px solid var(--bd2);border-radius:14px;background:var(--surface);color:var(--tx);font-family:'DM Sans',sans-serif;font-size:1.2rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;-webkit-appearance:none;box-shadow:var(--sh)}
-.pin-key:active{transform:scale(.92);background:var(--s2)}
-.pin-key.del{font-size:.95rem;color:var(--tx2)}
-.pin-key.empty{border-color:transparent;background:none;box-shadow:none;pointer-events:none}
-.pin-err{font-size:.7rem;color:var(--dn);height:1.1rem;text-align:center;margin-top:4px}
-.pin-setup-hint{font-size:.67rem;color:var(--tx3);margin-top:20px;text-align:center;line-height:1.6}
+/* ═══ AUTH OVERLAY ═══ */
+#auth-overlay{position:fixed;inset:0;z-index:99999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px}
+#auth-overlay.hidden{display:none}
+.auth-logo{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--tx);text-align:center}
+.auth-logo span{color:var(--o1)}
+.auth-sub{font-size:.78rem;color:var(--tx3);text-align:center;line-height:1.6;max-width:280px}
+.auth-btn{padding:12px 28px;background:linear-gradient(135deg,var(--g1),var(--g2));border:none;border-radius:12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;min-height:44px}
+/* Legacy PIN overlay hidden — auth via portal */
+#pin-overlay{display:none!important}
 </style>
 </head>
-<body data-version="1.3.0">
+<body data-version="1.4.0">
 
-<!-- ═══ PIN OVERLAY ═══ -->
-<div id="pin-overlay">
-  <div class="pin-logo">🎒 Pack<span>Organizer</span></div>
-  <div class="pin-sub" id="pin-sub-text">PIN eingeben</div>
-  <div class="pin-dots" id="pin-dots">
-    <div class="pin-dot" id="pd0"></div>
-    <div class="pin-dot" id="pd1"></div>
-    <div class="pin-dot" id="pd2"></div>
-    <div class="pin-dot" id="pd3"></div>
-    <div class="pin-dot" id="pd4"></div>
-    <div class="pin-dot" id="pd5"></div>
-  </div>
-  <div class="pin-grid">
-    <button class="pin-key" onclick="pinKey('1')">1</button>
-    <button class="pin-key" onclick="pinKey('2')">2</button>
-    <button class="pin-key" onclick="pinKey('3')">3</button>
-    <button class="pin-key" onclick="pinKey('4')">4</button>
-    <button class="pin-key" onclick="pinKey('5')">5</button>
-    <button class="pin-key" onclick="pinKey('6')">6</button>
-    <button class="pin-key" onclick="pinKey('7')">7</button>
-    <button class="pin-key" onclick="pinKey('8')">8</button>
-    <button class="pin-key" onclick="pinKey('9')">9</button>
-    <button class="pin-key empty"></button>
-    <button class="pin-key" onclick="pinKey('0')">0</button>
-    <button class="pin-key del" onclick="pinDel()">⌫</button>
-  </div>
-  <div class="pin-err" id="pin-err"></div>
-  <div class="pin-setup-hint" id="pin-setup-hint" style="display:none">
-    Kein PIN gesetzt.<br>Wähle einen 6-stelligen PIN.
-  </div>
+<!-- ═══ AUTH OVERLAY ═══ -->
+<div id="auth-overlay" class="hidden">
+  <div class="auth-logo">🎒 Pack<span>Organizer</span></div>
+  <div class="auth-sub">Bitte zuerst im Portal einloggen, um diese App zu nutzen.</div>
+  <button class="auth-btn" onclick="goToPortal()">🔑 Zum Portal</button>
 </div>
 
 <!-- TOPBAR -->
 <div id="topbar">
   <h1>🎒 Pack<span>Organizer</span></h1>
   <div id="hdr-r">
-    <button class="tbtn bgh" onclick="toggleTheme()" id="theme-btn">🌙 Dark</button>
-    <button class="tbtn bgh" onclick="openM('m-gh-token')" id="gh-status" title="GitHub Verbindung">🔑 Kein Token</button>
-    <button class="tbtn bg" onclick="exportJSON()" title="Daten als packorganizer_data.json speichern">💾 Export</button>
-    <button class="tbtn bo" onclick="openM('m-import')">📂 Laden</button>
-    <button class="tbtn bgh" onclick="openPinChange()" title="PIN ändern">🔒</button>
+    <button class="tbtn bgh" onclick="toggleTheme()" id="theme-btn">🌙</button>
+    <button class="tbtn bgh" onclick="openM('m-gh-token')" id="gh-status" title="GitHub Verbindung">🔑 Token</button>
+    <button class="tbtn bg" onclick="exportJSON()" title="Daten als packorganizer_data.json speichern">💾</button>
+    <button class="tbtn bo" onclick="openM('m-import')">📂</button>
+    <button class="tbtn bgh" onclick="goToPortal()" title="Zurück zum Portal">⌂</button>
   </div>
 </div>
 
@@ -872,10 +834,20 @@ function clearGhToken(){
 // ══════════════════════════════════
 // THEME
 // ══════════════════════════════════
-function toggleTheme(){S.theme=S.theme==='light'?'dark':'light';applyTheme();saveS();}
+function toggleTheme(){
+  const isDark = document.body.getAttribute('data-theme') === 'dark';
+  localStorage.setItem('portal_theme', isDark ? '' : 'dark');
+  S.theme = isDark ? 'light' : 'dark';
+  applyTheme(); saveS();
+}
 function applyTheme(){
-  document.documentElement.setAttribute('data-theme',S.theme);
-  document.getElementById('theme-btn').textContent=S.theme==='dark'?'☀️ Hell':'🌙 Dark';
+  const dark = localStorage.getItem('portal_theme') === 'dark' || S.theme === 'dark';
+  const theme = dark ? 'dark' : 'light';
+  S.theme = theme;
+  document.body.setAttribute('data-theme', theme);
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = dark ? '☀️' : '🌙';
 }
 
 // ══════════════════════════════════
@@ -1832,7 +1804,17 @@ function adminResizeStart(e, resizerIdx) {
 }
 
 
-checkPinOnLoad();
+// ═══ AUTH ═══
+function checkAuth() {
+  if (sessionStorage.getItem('portal_auth') !== '1') {
+    document.getElementById('auth-overlay').classList.remove('hidden');
+  } else {
+    document.getElementById('auth-overlay').classList.add('hidden');
+  }
+}
+function goToPortal() { window.location.replace('../index.html'); }
+
+checkAuth();
 init();
 </script>
 
@@ -2007,3 +1989,4 @@ init();
 
 </body>
 </html>
+<!-- END OF FILE — Version 1.4.0 -->
