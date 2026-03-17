@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 1.1.0 -->
+<!-- Version 1.1.1 -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -159,7 +159,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 ::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 </style>
 </head>
-<body data-version="1.1.0">
+<body data-version="1.1.1">
 
 <!-- ═══ AUTH OVERLAY ═══ -->
 <div id="auth-overlay">
@@ -664,17 +664,28 @@ function showError(m) { errorMsg.textContent='⚠️ '+m; errorMsg.classList.add
 function hideError()  { errorMsg.classList.remove('visible'); }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
+const AUTH_TTL = 24 * 60 * 60 * 1000; // 24h
+
+function isAuthValid() {
+  if (localStorage.getItem('portal_auth') !== '1') return false;
+  const ts = parseInt(localStorage.getItem('portal_auth_ts') || '0');
+  if (Date.now() - ts > AUTH_TTL) {
+    localStorage.removeItem('portal_auth');
+    localStorage.removeItem('portal_auth_ts');
+    return false;
+  }
+  return true;
+}
+
 function checkAuth() {
-  if (sessionStorage.getItem('portal_auth') !== '1') {
+  if (!isAuthValid()) {
     document.getElementById('auth-overlay').classList.remove('hidden');
   } else {
     document.getElementById('auth-overlay').classList.add('hidden');
   }
 }
 
-function goToPortal() {
-  window.location.replace('../index.html');
-}
+function goToPortal() { window.location.replace('../index.html'); }
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
 function applyTheme() {
@@ -708,4 +719,4 @@ checkAuth();
 <div id="toast"></div>
 </body>
 </html>
-<!-- END OF FILE — Version 1.1.0 -->
+<!-- END OF FILE — Version 1.1.1 -->
