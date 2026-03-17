@@ -1,14 +1,5 @@
 [
   {
-    "id": "mmu6srtu",
-    "icon": "📰",
-    "name": "GPX Splitter",
-    "desc": "Splittet GPX Files",
-    "path": "gpxsplitter",
-    "active": true,
-    "updatedAt": "2026-03-17T05:43:46.914Z"
-  },
-  {
     "id": "mmu76jhx",
     "icon": "📦",
     "name": "Packlist",
@@ -16,6 +7,16 @@
     "path": "packlist",
     "active": true,
     "updatedAt": "2026-03-17T05:54:29.301Z",
+    "scaffolded": true
+  },
+  {
+    "id": "mmu77hwx",
+    "icon": "G",
+    "name": "GPX Splitter",
+    "desc": "",
+    "path": "gpxsplitter",
+    "active": true,
+    "updatedAt": "2026-03-17T05:55:13.905Z",
     "scaffolded": true
   }
 ]
