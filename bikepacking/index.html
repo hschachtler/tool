@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 2.1.0 — BikePacking Manager -->
+<!-- Version 2.1.1 — BikePacking Manager -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -278,7 +278,7 @@ body{font-family:'DM Sans',sans-serif;background:#f0f4f8;color:#1a2b3c;height:10
 .leaflet-popup-content{margin:9px 13px!important;font-size:.76rem!important;line-height:1.5!important;color:#1a2b3c!important}
 </style>
 </head>
-<body data-version="2.1.0">
+<body data-version="2.1.1">
 
 <!-- AUTH OVERLAY -->
 <div id="auth-overlay" class="hidden">
@@ -289,7 +289,7 @@ body{font-family:'DM Sans',sans-serif;background:#f0f4f8;color:#1a2b3c;height:10
 
 <!-- TOP BAR -->
 <div id="topbar">
-  <h1>🚴 <span id="app-title-text">BikePacking</span> <span id="version-badge" style="font-size:.52rem;font-weight:400;color:#9ab0c8;font-family:'DM Sans',sans-serif;background:#f0f4f8;border:1px solid #dde4ec;border-radius:8px;padding:2px 6px;vertical-align:middle;letter-spacing:.03em">v2.1.0</span></h1>
+  <h1>🚴 <span id="app-title-text">BikePacking</span> <span id="version-badge" style="font-size:.52rem;font-weight:400;color:#9ab0c8;font-family:'DM Sans',sans-serif;background:#f0f4f8;border:1px solid #dde4ec;border-radius:8px;padding:2px 6px;vertical-align:middle;letter-spacing:.03em">v2.1.1</span></h1>
   <div id="topbar-btns">
     <button id="topbar-wizard-btn" class="topbar-btn topbar-btn-wizard" onclick="openWizardAdmin()" style="display:none">🧭 Wizard</button>
     <button id="topbar-osm-btn" class="topbar-btn" onclick="openOsmEnrichModal()" style="display:none;background:linear-gradient(135deg,#1a7a4a,#1a5080);color:#fff;box-shadow:0 1px 5px rgba(0,0,0,.15)">🌍 OSM</button>
@@ -4607,8 +4607,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // ═══ AUTH ═══
+const AUTH_TTL = 24 * 60 * 60 * 1000; // 24h
+
+function isAuthValid() {
+  if (localStorage.getItem('portal_auth') !== '1') return false;
+  const ts = parseInt(localStorage.getItem('portal_auth_ts') || '0');
+  if (Date.now() - ts > AUTH_TTL) {
+    localStorage.removeItem('portal_auth');
+    localStorage.removeItem('portal_auth_ts');
+    return false;
+  }
+  return true;
+}
+
 function checkAuth() {
-  if (sessionStorage.getItem('portal_auth') !== '1') {
+  if (!isAuthValid()) {
     document.getElementById('auth-overlay').classList.remove('hidden');
   } else {
     document.getElementById('auth-overlay').classList.add('hidden');
@@ -4687,4 +4700,4 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 </body>
 </html>
-<!-- END OF FILE — Version 2.1.0 -->
+<!-- END OF FILE — Version 2.1.1 -->
