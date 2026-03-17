@@ -225,6 +225,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 <div id="topbar">
   <h1>App <span>Portal</span></h1>
   <div id="hdr-r">
+    <button class="tbtn bgh" onclick="openTokenModal()" id="token-btn">🔒 Token</button>
     <button class="tbtn bgh" onclick="openPinModal()">🔑 PIN</button>
     <button class="tbtn bgh" id="theme-btn" onclick="toggleTheme()">🌙</button>
     <button class="tbtn bg" onclick="openAddModal()">＋ App</button>
@@ -397,6 +398,38 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
   </div>
 </div>
 
+<!-- ═══ TOKEN MODAL ═══ -->
+<div class="moverlay" id="token-modal">
+  <div class="mbox">
+    <div class="mhdr or">
+      <span class="mhdr-t">🔒 GitHub Token</span>
+      <button class="mcls" onclick="closeModal('token-modal')">✕</button>
+    </div>
+    <div class="mbody">
+      <div>
+        <label class="flbl">GitHub Repository (username/repo-name)</label>
+        <div style="display:flex;gap:8px">
+          <input class="fi" id="modal-repo" type="text" placeholder="z.B. meinname/meine-apps" autocomplete="off" autocorrect="off" spellcheck="false" style="flex:1">
+          <button class="tbtn bg" onclick="saveRepoFromModal()">OK</button>
+        </div>
+      </div>
+      <div>
+        <label class="flbl">GitHub Token (sessionStorage — nur diese Sitzung)</label>
+        <div style="display:flex;gap:8px">
+          <input class="fi" id="modal-token" type="password" placeholder="ghp_…" autocomplete="off" style="flex:1">
+          <button class="tbtn bg" onclick="saveTokenFromModal()">OK</button>
+        </div>
+        <div style="font-size:.6rem;color:var(--tx3);margin-top:6px;line-height:1.6">
+          Benötigte Berechtigung: <strong style="color:var(--tx2)">public_repo</strong> (öffentliches Repo) oder <strong style="color:var(--tx2)">repo</strong> (privates Repo).<br>
+          Der Token wird <strong style="color:var(--tx2)">nie gespeichert</strong> — nach dem Schliessen des Browsers ist er weg.
+        </div>
+      </div>
+      <div id="token-status-box" style="background:var(--s2);border:1px solid var(--bd2);border-radius:9px;padding:10px 12px;font-size:.68rem;color:var(--tx2);line-height:1.8"></div>
+      <button class="fcancel" onclick="closeModal('token-modal')">Schliessen</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ CONFIRM MODAL ═══ -->
 <div id="confirm-overlay">
   <div class="confirm-box">
@@ -482,7 +515,54 @@ function toggleTheme() {
 // ═══════════════════════════════════════════
 // SETUP / CONFIG
 // ═══════════════════════════════════════════
-function saveRepo() {
+function openTokenModal() {
+  const repo = getRepo();
+  const token = getToken();
+  const repoInput = document.getElementById('modal-repo');
+  const tokenInput = document.getElementById('modal-token');
+  if (repoInput) repoInput.value = repo;
+  tokenInput.value = '';
+  tokenInput.placeholder = token ? '••••••••••••• (gesetzt — neu eingeben zum Ändern)' : 'ghp_…';
+  updateTokenStatusBox();
+  openModal('token-modal');
+}
+
+function updateTokenStatusBox() {
+  const box = document.getElementById('token-status-box');
+  if (!box) return;
+  const repo = getRepo();
+  const token = getToken();
+  box.innerHTML =
+    `<div>📁 Repo: <strong style="color:var(--tx)">${repo || '— nicht gesetzt'}</strong></div>` +
+    `<div>🔒 Token: <strong style="color:${token ? 'var(--g1)' : 'var(--o1)'}">${token ? '✓ aktiv (diese Sitzung)' : '— nicht gesetzt (Read-only)'}</strong></div>`;
+}
+
+function saveRepoFromModal() {
+  const val = document.getElementById('modal-repo').value.trim();
+  if (!val || !val.includes('/')) { toast('Ungültiges Format — bitte username/repo-name', 'err'); return; }
+  localStorage.setItem(STORAGE_KEY_REPO, val);
+  updateStatusBar();
+  updateTokenStatusBox();
+  // Also update setup input if visible
+  const setupRepo = document.getElementById('setup-repo');
+  if (setupRepo) setupRepo.value = val;
+  document.getElementById('setup-section').style.display = 'none';
+  toast('Repo gespeichert', 'ok');
+  loadApps();
+}
+
+function saveTokenFromModal() {
+  const val = document.getElementById('modal-token').value.trim();
+  if (!val) { toast('Kein Token eingegeben', 'err'); return; }
+  sessionStorage.setItem('gh_token', val);
+  document.getElementById('modal-token').value = '';
+  document.getElementById('modal-token').placeholder = '••••••••••••• (gesetzt — neu eingeben zum Ändern)';
+  updateStatusBar();
+  updateTokenStatusBox();
+  toast('Token gespeichert (Session) ✓', 'ok');
+}
+
+
   const val = document.getElementById('setup-repo').value.trim();
   if (!val || !val.includes('/')) { toast('Ungültiges Format — bitte username/repo-name', 'err'); return; }
   localStorage.setItem(STORAGE_KEY_REPO, val);
@@ -527,6 +607,10 @@ function updateStatusBar() {
     repoDot.className = 'sb-dot err';
     repoLbl.textContent = 'Repo: nicht konfiguriert';
   }
+  // Update token button label
+  const tokenBtn = document.getElementById('token-btn');
+  if (tokenBtn) tokenBtn.textContent = token ? '🔓 Token' : '🔒 Token';
+  if (tokenBtn) tokenBtn.className = token ? 'tbtn bg' : 'tbtn bo';
   document.getElementById('sb-apps-lbl').textContent = apps.length + ' App' + (apps.length !== 1 ? 's' : '');
 }
 
