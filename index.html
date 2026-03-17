@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 1.1.0 — App Portal -->
+<!-- Version 1.1.1 — App Portal -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -196,7 +196,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 ::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 </style>
 </head>
-<body data-version="1.1.0">
+<body data-version="1.1.1">
 
 <!-- ═══ PIN OVERLAY ═══ -->
 <div id="pin-overlay">
@@ -646,8 +646,21 @@ async function ghGet(path) {
   const token = getToken();
   const headers = { 'Accept': 'application/vnd.github+json' };
   if (token) headers['Authorization'] = 'Bearer ' + token;
-  const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${BRANCH}`, { headers });
+  let res;
+  try {
+    res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${BRANCH}`, { headers });
+  } catch(netErr) {
+    // TypeError: Failed to fetch — Netzwerkfehler, CORS oder privates Repo ohne Token
+    const hint = !token ? ' (Token fehlt — privates Repo?)' : ' (Netzwerk pruefen)';
+    throw new Error('Netzwerkfehler' + hint);
+  }
+  if (res.status === 401) throw new Error('Token ungueltig oder abgelaufen (401)');
+  if (res.status === 403) {
+    const hint = !token ? ' — Token setzen fuer Zugriff' : ' — Token-Berechtigung pruefen';
+    throw new Error('Zugriff verweigert (403)' + hint);
+  }
   if (res.status === 404) return null;
+  if (res.status === 422) throw new Error('Branch "' + BRANCH + '" nicht gefunden (422)');
   if (!res.ok) throw new Error('GitHub GET Fehler: ' + res.status);
   return res.json();
 }
@@ -747,7 +760,12 @@ function loadCachedApps() {
 async function loadApps() {
   const repo = getRepo();
   if (!repo) { toast('Repo nicht konfiguriert', 'err'); showSetup(); return; }
-  setSyncStatus('Lade…');
+  // Warnung wenn kein Token gesetzt (privates Repo scheitert ohne Token)
+  if (!getToken()) {
+    setSyncStatus('Kein Token — nur öffentliche Repos');
+  } else {
+    setSyncStatus('Lade…');
+  }
   try {
     const file = await ghGet(DATA_PATH);
     if (file) {
@@ -763,8 +781,12 @@ async function loadApps() {
     document.getElementById('list-sub').textContent = apps.length + ' Apps geladen';
   } catch(e) {
     setSyncStatus('Fehler beim Laden');
-    toast('Fehler: ' + e.message, 'err');
+    const isNoToken = !getToken();
+    const msg = isNoToken ? e.message + ' — Token setzen!' : e.message;
+    toast('Fehler: ' + msg, 'err');
     document.getElementById('list-sub').textContent = 'Fehler beim Laden';
+    // Zeige Setup wenn Token fehlt und Fehler aufgetreten
+    if (isNoToken) setTimeout(showSetup, 600);
   }
 }
 
@@ -1205,4 +1227,4 @@ init();
 </script>
 </body>
 </html>
-<!-- END OF FILE — Version 1.1.0 -->
+<!-- END OF FILE — Version 1.1.1 -->
