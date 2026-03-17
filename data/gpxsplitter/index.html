@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>GPX Splitter</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:#f0f4f8;color:#1a2b3c;min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+
+#topbar{background:#fff;border-bottom:1px solid #e2e8f0;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;box-shadow:0 1px 8px rgba(0,0,0,.07);position:sticky;top:0;z-index:100}
+#topbar h1{font-family:'Playfair Display',serif;font-size:1.05rem;color:#1a2b3c;flex:1}
+#topbar h1 span{color:#c85a0a}
+.topbar-badge{background:#f0f7f4;border:1px solid #9ad8b0;border-radius:20px;padding:3px 10px;font-size:.65rem;font-weight:600;color:#1a6a3a;white-space:nowrap}
+
+#main{flex:1;padding:14px 14px 40px;display:flex;flex-direction:column;gap:14px;max-width:600px;width:100%;margin:0 auto}
+
+.section-lbl{font-size:.6rem;font-weight:700;color:#9ab0c8;text-transform:uppercase;letter-spacing:.1em;padding:2px 2px 6px;display:block}
+
+.card{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);border:1px solid #e8eef4;overflow:hidden}
+
+/* DROP ZONE */
+#drop-zone{padding:34px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;border:2px dashed #dde4ec;border-radius:14px;background:#fff;transition:all .15s;text-align:center}
+#drop-zone.drag-over{border-color:#1a9a5a;background:#f0f7f4}
+#drop-zone .drop-icon{font-size:2.2rem;line-height:1}
+#drop-zone .drop-title{font-size:.88rem;font-weight:600;color:#1a2b3c}
+#drop-zone .drop-sub{font-size:.7rem;color:#9ab0c8}
+#drop-zone:active{background:#f4f6f9}
+#file-input{display:none}
+
+/* FILE INFO */
+#file-info-card{display:none}
+#file-info-card.visible{display:block}
+.file-info-inner{display:flex;align-items:center;gap:10px;padding:12px 14px}
+.file-icon-box{width:40px;height:40px;background:linear-gradient(135deg,#1a6b4a,#1a5080);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0}
+.file-details{flex:1;min-width:0}
+.file-name{font-size:.82rem;font-weight:600;color:#1a2b3c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta{font-size:.65rem;color:#7a92a8;margin-top:2px}
+.remove-btn{background:#f0f4f8;border:1px solid #dde4ec;border-radius:10px;padding:7px 11px;font-size:.68rem;font-weight:600;color:#5a7a9a;cursor:pointer;font-family:'DM Sans',sans-serif;-webkit-appearance:none;white-space:nowrap;transition:background .15s}
+.remove-btn:active{background:#e4ecf4}
+
+/* STATS */
+#stats-row{display:none;border-top:1px solid #e8eef4}
+#stats-row.visible{display:flex}
+.stat-box{flex:1;padding:12px 14px;border-right:1px solid #e8eef4}
+.stat-box:last-child{border-right:none}
+.stat-val{font-size:1.05rem;font-weight:700;color:#c85a0a;line-height:1}
+.stat-label{font-size:.59rem;color:#9ab0c8;text-transform:uppercase;letter-spacing:.07em;margin-top:3px}
+
+/* FORM FIELDS */
+.ctrl-card{padding:14px;display:flex;flex-direction:column;gap:12px}
+.field-row{display:flex;flex-direction:column;gap:4px}
+.field-label{font-size:.65rem;font-weight:600;color:#5a7a9a;text-transform:uppercase;letter-spacing:.08em}
+.field-input{width:100%;padding:10px 12px;border:1.5px solid #dde4ec;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:#1a2b3c;background:#f4f6f9;outline:none;transition:border-color .15s;-webkit-appearance:none}
+.field-input:focus{border-color:#1a9a5a;background:#fff}
+.field-select{width:100%;padding:10px 12px;border:1.5px solid #dde4ec;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:#1a2b3c;background:#f4f6f9;outline:none;transition:border-color .15s;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239ab0c8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.field-select:focus{border-color:#1a9a5a;background-color:#fff}
+
+/* NUMBER INPUT */
+.num-wrap{display:flex;align-items:center;background:#f4f6f9;border:1.5px solid #dde4ec;border-radius:10px;overflow:hidden;transition:border-color .15s}
+.num-wrap:focus-within{border-color:#1a9a5a;background:#fff}
+.num-btn{width:40px;height:42px;background:none;border:none;font-size:1.2rem;color:#5a7a9a;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-appearance:none;transition:color .15s;flex-shrink:0}
+.num-btn:active{color:#1a6a3a}
+.num-input{flex:1;border:none;background:none;text-align:center;font-size:1.25rem;font-weight:700;color:#1a2b3c;font-family:'DM Sans',sans-serif;outline:none;min-width:0}
+
+/* DIVIDER */
+.divider{height:1px;background:#e8eef4;margin:0 -14px}
+
+/* NAME PREVIEW */
+#name-preview{background:#f0f7f4;border:1px solid #9ad8b0;border-radius:10px;padding:10px 13px;font-size:.7rem;color:#1a4a2a;line-height:1.6;display:none}
+#name-preview.visible{display:block}
+#name-preview strong{color:#1a6a3a}
+
+/* SPLIT BTN */
+#split-btn{width:100%;padding:14px;background:linear-gradient(135deg,#1a6b4a,#1a5080);border:none;border-radius:12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;-webkit-appearance:none;transition:opacity .2s;box-shadow:0 2px 10px rgba(26,80,128,.18)}
+#split-btn:disabled{opacity:.35;cursor:not-allowed}
+#split-btn:active:not(:disabled){opacity:.85}
+
+/* PROGRESS */
+#progress-wrap{display:none;background:#fff;border-radius:14px;border:1px solid #e8eef4;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:14px;gap:8px;flex-direction:column}
+#progress-wrap.visible{display:flex}
+.prog-label{font-size:.73rem;color:#5a7a9a}
+.prog-bar-bg{height:6px;background:#e8eef4;border-radius:3px;overflow:hidden}
+.prog-bar-fill{height:100%;background:linear-gradient(90deg,#1a6b4a,#1a5080);border-radius:3px;width:0%;transition:width .4s}
+.prog-sub{font-size:.65rem;color:#9ab0c8}
+
+/* ERROR */
+#error-msg{display:none;background:#fff5f5;border:1px solid #f0c0c0;border-radius:12px;padding:12px 14px;font-size:.75rem;color:#c04040;line-height:1.5}
+#error-msg.visible{display:block}
+
+/* RESULTS */
+#results-wrap{display:none}
+#results-wrap.visible{display:flex;flex-direction:column;gap:8px}
+.results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.dl-all-btn{display:flex;align-items:center;gap:5px;padding:7px 12px;background:linear-gradient(135deg,#c85a0a,#e07820);border:none;border-radius:16px;color:#fff;font-family:'DM Sans',sans-serif;font-size:.68rem;font-weight:600;cursor:pointer;-webkit-appearance:none;box-shadow:0 1px 5px rgba(0,0,0,.12);transition:opacity .15s}
+.dl-all-btn:active{opacity:.8}
+
+.result-item{background:#fff;border-radius:12px;border:1px solid #e8eef4;box-shadow:0 1px 6px rgba(0,0,0,.05);padding:11px 13px;animation:slideIn .25s ease forwards;opacity:0}
+@keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.res-header{display:flex;align-items:center;gap:10px}
+.res-num{width:28px;height:28px;background:#eaf5f0;border:1px solid #9ad8b0;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;color:#1a6a3a;flex-shrink:0}
+.res-info{flex:1;min-width:0}
+.res-name{font-size:.75rem;font-weight:600;color:#1a2b3c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res-route{font-size:.68rem;color:#c85a0a;font-weight:600;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res-meta{font-size:.61rem;color:#7a92a8;margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;padding-left:38px}
+.res-dl-btn{background:linear-gradient(135deg,#1a6b4a,#1a5080);border:none;border-radius:9px;padding:7px 12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:.68rem;font-weight:600;cursor:pointer;-webkit-appearance:none;white-space:nowrap;transition:opacity .15s}
+.res-dl-btn:active{opacity:.8}
+
+/* GEOCODING STATUS BADGE */
+.geo-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:.6rem;font-weight:600}
+.geo-badge.loading{background:#fff4e8;color:#a04010;border:1px solid #f0b878}
+.geo-badge.done{background:#eaf5f0;color:#1a6a3a;border:1px solid #9ad8b0}
+.geo-badge.error{background:#f5f0f0;color:#804040;border:1px solid #d8b0b0}
+
+.spinner{display:inline-block;width:8px;height:8px;border:1.5px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>GPX <span>Splitter</span></h1>
+  <div class="topbar-badge">✂︎ Route aufteilen</div>
+</div>
+
+<div id="main">
+
+  <!-- DROP ZONE -->
+  <div>
+    <span class="section-lbl">GPX-Datei laden</span>
+    <div id="drop-zone">
+      <span class="drop-icon">🗺️</span>
+      <div class="drop-title">GPX-Datei hier ablegen</div>
+      <div class="drop-sub">oder tippen zum Auswählen · .gpx</div>
+      <input type="file" id="file-input" accept=".gpx,application/gpx+xml,text/xml">
+    </div>
+  </div>
+
+  <!-- FILE INFO -->
+  <div class="card" id="file-info-card">
+    <div class="file-info-inner">
+      <div class="file-icon-box">📍</div>
+      <div class="file-details">
+        <div class="file-name" id="file-name">—</div>
+        <div class="file-meta" id="file-meta">—</div>
+      </div>
+      <button class="remove-btn" id="remove-btn">✕ Entfernen</button>
+    </div>
+    <div id="stats-row">
+      <div class="stat-box">
+        <div class="stat-val" id="stat-points">—</div>
+        <div class="stat-label">📍 Punkte</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-dist">—</div>
+        <div class="stat-label">📏 km gesamt</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-route">—</div>
+        <div class="stat-label">🏁 Start → Ziel</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div>
+    <span class="section-lbl">Tour konfigurieren</span>
+    <div class="card">
+      <div class="ctrl-card">
+
+        <!-- Sportart -->
+        <div class="field-row">
+          <label class="field-label" for="sport-select">🚴 Sportart</label>
+          <select class="field-select" id="sport-select">
+            <option value="Gravelbike Tour">🚵 Gravelbike Tour</option>
+            <option value="Rennrad Tour">🚴 Rennrad Tour</option>
+            <option value="MTB Tour">🏔️ MTB Tour</option>
+            <option value="Wanderung">🥾 Wanderung</option>
+            <option value="Trekking">🎒 Trekking</option>
+            <option value="Lauf">🏃 Lauf</option>
+            <option value="Ski Touring">⛷️ Ski Touring</option>
+            <option value="E-Bike Tour">⚡ E-Bike Tour</option>
+            <option value="Tour">🗺️ Tour</option>
+          </select>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Tourname -->
+        <div class="field-row">
+          <label class="field-label" for="tour-name">🏷️ Tourname (erscheint im Dateinamen)</label>
+          <input class="field-input" type="text" id="tour-name" placeholder="z.B. Rebstein - Serbien" maxlength="80">
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Anzahl Teile -->
+        <div class="field-row">
+          <label class="field-label" for="split-count">✂︎ Anzahl Teile (gleichmässige Distanz)</label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="num-wrap" style="flex:1">
+              <button class="num-btn" id="dec-btn">−</button>
+              <input class="num-input" type="number" id="split-count" value="4" min="2" max="50">
+              <button class="num-btn" id="inc-btn">+</button>
+            </div>
+            <div id="km-per-part" style="font-size:.72rem;color:#7a92a8;white-space:nowrap">— km / Teil</div>
+          </div>
+        </div>
+
+        <!-- Dateinamen-Vorschau -->
+        <div id="name-preview">
+          <strong>📄 Dateinamen-Vorschau:</strong><br>
+          <span id="preview-text">—</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div id="error-msg"></div>
+
+  <!-- PROGRESS -->
+  <div id="progress-wrap">
+    <div class="prog-label" id="prog-label">Initialisiere…</div>
+    <div class="prog-bar-bg"><div class="prog-bar-fill" id="prog-fill"></div></div>
+    <div class="prog-sub" id="prog-sub"></div>
+  </div>
+
+  <!-- SPLIT BUTTON -->
+  <button id="split-btn" disabled>✂︎ &nbsp;GPX aufteilen &amp; Orte suchen</button>
+
+  <!-- RESULTS -->
+  <div id="results-wrap">
+    <div class="results-header">
+      <span class="section-lbl" style="padding-bottom:0">Ergebnisse</span>
+      <button class="dl-all-btn" id="dl-all-btn">⬇ Alle herunterladen</button>
+    </div>
+    <div id="result-list"></div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let gpxDoc = null, allPoints = [], rawDistances = [], totalDistKm = 0;
+let generatedFiles = [];
+let startCity = '', endCity = '';
+
+// ─── ELEMENTS ────────────────────────────────────────────────────────────────
+const dropZone    = document.getElementById('drop-zone');
+const fileInput   = document.getElementById('file-input');
+const fileCard    = document.getElementById('file-info-card');
+const fileNameEl  = document.getElementById('file-name');
+const fileMetaEl  = document.getElementById('file-meta');
+const removeBtn   = document.getElementById('remove-btn');
+const statsRow    = document.getElementById('stats-row');
+const splitBtn    = document.getElementById('split-btn');
+const splitCount  = document.getElementById('split-count');
+const resultsWrap = document.getElementById('results-wrap');
+const resultList  = document.getElementById('result-list');
+const errorMsg    = document.getElementById('error-msg');
+const progWrap    = document.getElementById('progress-wrap');
+const progFill    = document.getElementById('prog-fill');
+const progLabel   = document.getElementById('prog-label');
+const progSub     = document.getElementById('prog-sub');
+const dlAllBtn    = document.getElementById('dl-all-btn');
+const tourNameEl  = document.getElementById('tour-name');
+const sportSelect = document.getElementById('sport-select');
+const kmPerPart   = document.getElementById('km-per-part');
+const namePreview = document.getElementById('name-preview');
+const previewText = document.getElementById('preview-text');
+
+// ─── EVENTS ──────────────────────────────────────────────────────────────────
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f) loadFile(f); });
+fileInput.addEventListener('change', e => { if(e.target.files[0]) loadFile(e.target.files[0]); });
+removeBtn.addEventListener('click', resetAll);
+
+document.getElementById('inc-btn').addEventListener('click', () => { splitCount.value = Math.min(50, parseInt(splitCount.value||1)+1); updatePreview(); });
+document.getElementById('dec-btn').addEventListener('click', () => { splitCount.value = Math.max(2, parseInt(splitCount.value||2)-1); updatePreview(); });
+splitCount.addEventListener('input', updatePreview);
+tourNameEl.addEventListener('input', updatePreview);
+sportSelect.addEventListener('change', updatePreview);
+splitBtn.addEventListener('click', doSplit);
+dlAllBtn.addEventListener('click', () => generatedFiles.forEach((f,i) => setTimeout(()=>downloadBlob(f.blob,f.name), i*150)));
+
+// ─── LOAD FILE ───────────────────────────────────────────────────────────────
+function loadFile(file) {
+  if (!file.name.toLowerCase().endsWith('.gpx')) { showError('Bitte eine gültige .gpx Datei auswählen.'); return; }
+  hideError();
+  const reader = new FileReader();
+  reader.onload = e => parseGPX(e.target.result, file.size, file.name);
+  reader.readAsText(file);
+}
+
+function parseGPX(text, size, origName) {
+  try {
+    const parser = new DOMParser();
+    gpxDoc = parser.parseFromString(text, 'application/xml');
+    if (gpxDoc.querySelector('parsererror')) throw new Error('Ungültige XML-Struktur');
+
+    // Prefer trkpt, fallback to rtept/wpt
+    let pts = [...gpxDoc.querySelectorAll('trkpt')];
+    if (!pts.length) pts = [...gpxDoc.querySelectorAll('rtept')];
+    if (!pts.length) pts = [...gpxDoc.querySelectorAll('wpt')];
+    if (!pts.length) throw new Error('Keine Wegpunkte (trkpt/rtept/wpt) gefunden');
+    allPoints = pts;
+
+    // Build cumulative distances
+    rawDistances = [0];
+    for (let i=1; i<allPoints.length; i++) {
+      rawDistances.push(rawDistances[i-1] + haversine(
+        +allPoints[i-1].getAttribute('lat'), +allPoints[i-1].getAttribute('lon'),
+        +allPoints[i].getAttribute('lat'),   +allPoints[i].getAttribute('lon')
+      ));
+    }
+    totalDistKm = rawDistances[rawDistances.length-1];
+
+    fileCard.classList.add('visible');
+    fileNameEl.textContent = origName;
+    fileMetaEl.textContent = (size/1024).toFixed(1) + ' KB · ' + allPoints.length.toLocaleString('de-CH') + ' Punkte';
+    document.getElementById('stat-points').textContent = allPoints.length.toLocaleString('de-CH');
+    document.getElementById('stat-dist').textContent = totalDistKm.toFixed(0);
+    document.getElementById('stat-route').textContent = '…';
+    statsRow.classList.add('visible');
+    splitBtn.disabled = false;
+    hideResults();
+
+    // Suggest tour name from GPX metadata
+    const metaName = gpxDoc.querySelector('metadata > name')?.textContent ||
+                     gpxDoc.querySelector('trk > name')?.textContent || '';
+    if (metaName && !tourNameEl.value) tourNameEl.value = metaName.trim();
+
+    // Geocode start and end
+    geocodeEndpoints();
+    updatePreview();
+  } catch(err) { showError('Fehler beim Lesen: ' + err.message); }
+}
+
+// ─── GEOCODE START/END ───────────────────────────────────────────────────────
+async function geocodeEndpoints() {
+  document.getElementById('stat-route').textContent = '⏳';
+  const first = allPoints[0], last = allPoints[allPoints.length-1];
+  const [sc, ec] = await Promise.all([
+    reverseGeocode(+first.getAttribute('lat'), +first.getAttribute('lon')),
+    reverseGeocode(+last.getAttribute('lat'),  +last.getAttribute('lon'))
+  ]);
+  startCity = sc;
+  endCity   = ec;
+  document.getElementById('stat-route').textContent = sc + ' → ' + ec;
+  updatePreview();
+}
+
+async function reverseGeocode(lat, lon) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&accept-language=de`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'GPX-Splitter/1.0' } });
+    const data = await res.json();
+    const a = data.address || {};
+    return a.city || a.town || a.village || a.municipality || a.county || a.state || 'Unbekannt';
+  } catch { return 'Unbekannt'; }
+}
+
+// ─── PREVIEW ─────────────────────────────────────────────────────────────────
+function updatePreview() {
+  const n = parseInt(splitCount.value) || 4;
+  if (totalDistKm > 0) {
+    kmPerPart.textContent = (totalDistKm / n).toFixed(0) + ' km / Teil';
+  }
+  if (!allPoints.length) return;
+
+  const sport   = sportSelect.value;
+  const tour    = tourNameEl.value.trim() || '?';
+  const sc      = startCity  || '…';
+  const ec      = endCity    || '…';
+
+  const examples = [];
+  for (let i=1; i<=Math.min(n,2); i++) {
+    examples.push(`Teil ${i}/${n}: <em>Stadtanfang – Stadtende (${sport} ${tour}) Teil ${i}/${n}.gpx</em>`);
+  }
+  if (n > 2) examples.push('…');
+
+  previewText.innerHTML =
+    `<strong>${sc}</strong> → <strong>${ec}</strong> · ${sport} ${tour}<br>` +
+    `📄 Beispiel: <em>Stadtanfang – Stadtende (${sport} ${tour}) Teil 1 von ${n}.gpx</em>`;
+  namePreview.classList.add('visible');
+}
+
+// ─── SPLIT ───────────────────────────────────────────────────────────────────
+async function doSplit() {
+  hideError();
+  const n = parseInt(splitCount.value);
+  if (isNaN(n) || n < 2) { showError('Mindestens 2 Teile benötigt.'); return; }
+  if (!allPoints.length) { showError('Bitte zuerst eine GPX-Datei laden.'); return; }
+
+  splitBtn.disabled = true;
+  generatedFiles = [];
+  resultsWrap.classList.remove('visible');
+
+  // ── 1. Compute ideal split distances ──────────────────────────────────────
+  const targetDist = totalDistKm / n; // km per chunk
+  const splitIndices = [0]; // indices where each segment starts
+
+  for (let part = 1; part < n; part++) {
+    const target = targetDist * part;
+    // Find the point closest to this target cumulative distance
+    let best = 1, bestDiff = Infinity;
+    for (let i = splitIndices[splitIndices.length-1]+1; i < allPoints.length-1; i++) {
+      const diff = Math.abs(rawDistances[i] - target);
+      if (diff < bestDiff) { bestDiff = diff; best = i; }
+    }
+    splitIndices.push(best);
+  }
+  splitIndices.push(allPoints.length - 1); // end
+
+  // ── 2. Build chunks ────────────────────────────────────────────────────────
+  const chunks = [];
+  for (let i = 0; i < n; i++) {
+    const from = splitIndices[i];
+    const to   = splitIndices[i+1];
+    chunks.push(allPoints.slice(from, to + 1));
+  }
+
+  // ── 3. Geocode each chunk endpoint ────────────────────────────────────────
+  progWrap.classList.add('visible');
+  progFill.style.width = '0%';
+  progLabel.textContent = 'Suche Ortsnamen via OpenStreetMap…';
+  progSub.textContent   = `0 von ${n} Teilen`;
+
+  // Collect all geocoding promises with rate limiting (1 req/s for Nominatim)
+  const endCities = []; // endCities[i] = city name at end of chunk i
+  const startCities = []; // startCities[i] = city name at start of chunk i
+
+  for (let i = 0; i < n; i++) {
+    progFill.style.width = Math.round(((i+1)/n)*50) + '%';
+    progSub.textContent  = `Geocodiere Teil ${i+1} von ${n}…`;
+
+    const chunk = chunks[i];
+    const firstPt = chunk[0];
+    const lastPt  = chunk[chunk.length-1];
+
+    const sc = i === 0
+      ? startCity
+      : await rateLimitedGeocode(+firstPt.getAttribute('lat'), +firstPt.getAttribute('lon'), i);
+
+    const ec = i === n-1
+      ? endCity
+      : await rateLimitedGeocode(+lastPt.getAttribute('lat'), +lastPt.getAttribute('lon'), i);
+
+    startCities.push(sc);
+    endCities.push(ec);
+  }
+
+  // ── 4. Build GPX files ────────────────────────────────────────────────────
+  progLabel.textContent = 'Erstelle GPX-Dateien…';
+  const sport   = sportSelect.value;
+  const tourName = tourNameEl.value.trim() || 'Tour';
+  const sc0     = startCity || startCities[0];
+  const ecN     = endCity   || endCities[n-1];
+
+  const newList = resultList.cloneNode(false);
+  resultList.parentNode.replaceChild(newList, resultList);
+  newList.addEventListener('click', e => {
+    const btn = e.target.closest('.res-dl-btn');
+    if (!btn) return;
+    const i = +btn.dataset.idx;
+    downloadBlob(generatedFiles[i].blob, generatedFiles[i].name);
+  });
+
+  resultsWrap.classList.add('visible');
+
+  for (let i = 0; i < n; i++) {
+    progFill.style.width = Math.round(50 + ((i+1)/n)*50) + '%';
+    progSub.textContent  = `Erstelle Datei ${i+1} von ${n}…`;
+
+    const chunk = chunks[i];
+    const cs    = startCities[i];
+    const ce    = endCities[i];
+    const partLabel = `${cs} – ${ce}`;
+    const tourLabel = `${sport} ${tourName}`;
+    const trackName = `${partLabel} (${tourLabel}) Teil ${i+1} von ${n}`;
+    const fileName  = sanitizeFilename(`${partLabel} (${tourLabel}) Teil ${i+1} von ${n}.gpx`);
+
+    const chunkDist = rawDistances[splitIndices[i+1]] - rawDistances[splitIndices[i]];
+    const gpxStr = buildGPX(chunk, trackName, sport);
+    const blob   = new Blob([gpxStr], { type: 'application/gpx+xml' });
+    generatedFiles.push({ blob, name: fileName, dist: chunkDist, points: chunk.length, cs, ce });
+
+    const item = document.createElement('div');
+    item.className = 'result-item';
+    item.style.animationDelay = (i*0.05)+'s';
+    item.innerHTML = `
+      <div class="res-header">
+        <div class="res-num">${i+1}</div>
+        <div class="res-info">
+          <div class="res-name">${fileName}</div>
+          <div class="res-route">📍 ${cs} → 🏁 ${ce}</div>
+        </div>
+        <button class="res-dl-btn" data-idx="${i}">⬇ Download</button>
+      </div>
+      <div class="res-meta">
+        <span>📏 ${chunkDist.toFixed(1)} km</span>
+        <span>📍 ${chunk.length.toLocaleString('de-CH')} Pkt.</span>
+        <span>💾 ${(blob.size/1024).toFixed(1)} KB</span>
+      </div>`;
+    newList.appendChild(item);
+    await sleep(10);
+  }
+
+  progWrap.classList.remove('visible');
+  splitBtn.disabled = false;
+}
+
+// ─── GEOCODE WITH RATE LIMIT ─────────────────────────────────────────────────
+const geocodeCache = {};
+async function rateLimitedGeocode(lat, lon, idx) {
+  const key = lat.toFixed(4) + ',' + lon.toFixed(4);
+  if (geocodeCache[key]) return geocodeCache[key];
+  if (idx > 0) await sleep(1100); // Nominatim: 1 req/s
+  const city = await reverseGeocode(lat, lon);
+  geocodeCache[key] = city;
+  return city;
+}
+
+// ─── BUILD GPX ───────────────────────────────────────────────────────────────
+function buildGPX(points, trackName, sport) {
+  const creator = gpxDoc?.querySelector('gpx')?.getAttribute('creator') || 'GPX Splitter';
+  const typeMap = {
+    'Gravelbike Tour': 'cycling', 'Rennrad Tour': 'cycling', 'MTB Tour': 'cycling',
+    'E-Bike Tour': 'cycling', 'Wanderung': 'hiking', 'Trekking': 'hiking',
+    'Lauf': 'running', 'Ski Touring': 'skiing', 'Tour': 'other'
+  };
+  const gpxType = typeMap[sport] || 'other';
+
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="${esc(creator)}" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>${esc(trackName)}</name>
+    <time>${new Date().toISOString()}</time>
+  </metadata>
+  <trk>
+    <name>${esc(trackName)}</name>
+    <type>${gpxType}</type>
+    <trkseg>\n`;
+
+  for (const pt of points) {
+    const lat  = pt.getAttribute('lat');
+    const lon  = pt.getAttribute('lon');
+    const ele  = pt.querySelector('ele');
+    const time = pt.querySelector('time');
+    xml += `      <trkpt lat="${lat}" lon="${lon}">`;
+    if (ele)  xml += `<ele>${ele.textContent}</ele>`;
+    if (time) xml += `<time>${time.textContent}</time>`;
+    xml += `</trkpt>\n`;
+  }
+  xml += `    </trkseg>\n  </trk>\n</gpx>`;
+  return xml;
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function haversine(la1,lo1,la2,lo2) {
+  const R=6371, dL=(la2-la1)*Math.PI/180, dO=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dO/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function sanitizeFilename(s) {
+  // Keep German umlauts but remove chars not allowed in filenames
+  return s.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g,' ').trim();
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function resetAll() {
+  gpxDoc=null; allPoints=[]; rawDistances=[]; totalDistKm=0;
+  startCity=''; endCity='';
+  fileCard.classList.remove('visible');
+  statsRow.classList.remove('visible');
+  splitBtn.disabled=true;
+  fileInput.value='';
+  namePreview.classList.remove('visible');
+  hideResults(); hideError();
+  progWrap.classList.remove('visible');
+  kmPerPart.textContent='— km / Teil';
+}
+
+function hideResults() {
+  resultsWrap.classList.remove('visible');
+  const rl = document.getElementById('result-list');
+  if (rl) rl.innerHTML = '';
+  generatedFiles = [];
+}
+
+function showError(m) { errorMsg.textContent='⚠️ '+m; errorMsg.classList.add('visible'); }
+function hideError()  { errorMsg.classList.remove('visible'); }
+</script>
+</body>
+</html>
