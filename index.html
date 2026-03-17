@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 1.0.2 — App Portal -->
+<!-- Version 1.1.0 — App Portal -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -88,6 +88,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .ib.go{background:linear-gradient(135deg,var(--g1),var(--g2));border-color:transparent;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 .ib.go:hover{opacity:.85}
 
+/* ═══ SCAFFOLD BADGE ═══ */
+.badge-scaffold{background:#e8f0fe;color:#1a4080;border-color:#9ab8e8}
+[data-theme="dark"] .badge-scaffold{background:#1a2a48;color:#6a9ae8;border-color:#2a4a88}
+
 /* ═══ EMPTY STATE ═══ */
 .empty{text-align:center;padding:40px 20px;color:var(--tx3)}
 .empty .big{font-size:2.2rem;display:block;margin-bottom:10px}
@@ -143,6 +147,11 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .toggle input:checked+.toggle-slider{background:var(--g1)}
 .toggle input:checked+.toggle-slider:before{transform:translateX(18px)}
 
+/* ═══ SCAFFOLD INFO BOX ═══ */
+.scaffold-info{background:var(--acc);border:1px solid var(--bd2);border-radius:8px;padding:10px 12px;font-size:.65rem;color:var(--tx2);line-height:1.7}
+.scaffold-info strong{color:var(--g1)}
+.scaffold-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0 2px}
+
 /* ═══ PIN OVERLAY ═══ */
 #pin-overlay{position:fixed;inset:0;z-index:99999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
 #pin-overlay.hidden{display:none}
@@ -187,7 +196,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 ::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 </style>
 </head>
-<body data-version="1.0.2">
+<body data-version="1.1.0">
 
 <!-- ═══ PIN OVERLAY ═══ -->
 <div id="pin-overlay">
@@ -341,6 +350,19 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
           <span class="toggle-slider"></span>
         </label>
       </div>
+      <!-- ═══ SCAFFOLD OPTION (nur bei neuer App) ═══ -->
+      <div id="scaffold-section">
+        <div class="scaffold-toggle-row">
+          <span class="toggle-lbl" style="font-size:.76rem">📂 Datenstruktur auf GitHub anlegen</span>
+          <label class="toggle">
+            <input type="checkbox" id="scaffold-enabled" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="scaffold-info" id="scaffold-info">
+          Legt beim Speichern automatisch <strong>data/[pfad].json</strong> mit einer leeren Grundstruktur im Repo an. Die Datei kann danach von der App selbst befüllt werden.
+        </div>
+      </div>
       <div class="frow2">
         <button class="fcancel" onclick="closeModal('app-modal')">Abbrechen</button>
         <button class="fsave" id="app-save-btn" onclick="saveApp()">Speichern</button>
@@ -485,7 +507,6 @@ function init() {
   updateStatusBar();
   loadCachedApps();
 
-  // Pre-fill repo input if saved
   const repo = localStorage.getItem(STORAGE_KEY_REPO);
   if (repo) {
     const el = document.getElementById('setup-repo');
@@ -506,6 +527,7 @@ function applyTheme() {
   document.body.setAttribute('data-theme', dark ? 'dark' : '');
   document.getElementById('theme-btn').textContent = dark ? '☀️' : '🌙';
 }
+
 function toggleTheme() {
   const isDark = document.body.getAttribute('data-theme') === 'dark';
   localStorage.setItem(STORAGE_KEY_THEME, isDark ? '' : 'dark');
@@ -543,7 +565,6 @@ function saveRepoFromModal() {
   localStorage.setItem(STORAGE_KEY_REPO, val);
   updateStatusBar();
   updateTokenStatusBox();
-  // Also update setup input if visible
   const setupRepo = document.getElementById('setup-repo');
   if (setupRepo) setupRepo.value = val;
   document.getElementById('setup-section').style.display = 'none';
@@ -561,7 +582,6 @@ function saveTokenFromModal() {
   updateTokenStatusBox();
   toast('Token gespeichert (Session) ✓', 'ok');
 }
-
 
 function saveRepo() {
   const val = document.getElementById('setup-repo').value.trim();
@@ -608,7 +628,6 @@ function updateStatusBar() {
     repoDot.className = 'sb-dot err';
     repoLbl.textContent = 'Repo: nicht konfiguriert';
   }
-  // Update token button label
   const tokenBtn = document.getElementById('token-btn');
   if (tokenBtn) tokenBtn.textContent = token ? '🔓 Token' : '🔒 Token';
   if (tokenBtn) tokenBtn.className = token ? 'tbtn bg' : 'tbtn bo';
@@ -649,7 +668,6 @@ async function ghPut(path, content, sha, message) {
     body: JSON.stringify(body)
   });
   if (res.status === 409) {
-    // Conflict: re-fetch SHA and retry once
     const fresh = await ghGet(path);
     const newSha = fresh ? fresh.sha : null;
     body.sha = newSha;
@@ -665,11 +683,51 @@ async function ghPut(path, content, sha, message) {
   return res.json();
 }
 
-// SHA-first write
+// SHA-first write für apps.json
 async function writeApps(newApps, message) {
   const existing = await ghGet(DATA_PATH);
   const sha = existing ? existing.sha : null;
   return ghPut(DATA_PATH, newApps, sha, message || 'Portal: Update apps.json');
+}
+
+// ═══════════════════════════════════════════
+// SCAFFOLD — Datenstruktur anlegen
+// ═══════════════════════════════════════════
+
+// Baut eine leere, aber vollständig typisierte Grundstruktur für eine neue App
+function buildScaffoldData(app) {
+  return {
+    _meta: {
+      app: app.name,
+      path: app.path,
+      createdAt: app.updatedAt,
+      version: '1.0.0',
+      description: app.desc || ''
+    },
+    items: [],
+    categories: [],
+    tags: [],
+    settings: {}
+  };
+}
+
+// Legt data/[app-path].json auf GitHub an — nur wenn nicht bereits vorhanden
+async function scaffoldAppData(app) {
+  const dataFilePath = `data/${app.path}.json`;
+  let existing = null;
+  try {
+    existing = await ghGet(dataFilePath);
+  } catch(e) {
+    // Fehler beim Prüfen → trotzdem versuchen
+  }
+  if (existing) {
+    toast(`📂 ${dataFilePath} existiert bereits — übersprungen`, '');
+    return { skipped: true };
+  }
+  const scaffold = buildScaffoldData(app);
+  // SHA null → neue Datei anlegen
+  await ghPut(dataFilePath, scaffold, null, `Portal: Scaffold data/${app.path}.json für App "${app.name}"`);
+  return { skipped: false, path: dataFilePath };
 }
 
 // ═══════════════════════════════════════════
@@ -723,7 +781,6 @@ function setSyncStatus(msg) {
 function renderApps() {
   const list = document.getElementById('app-list');
   const empty = document.getElementById('empty-state');
-  // Remove existing rows
   list.querySelectorAll('.app-row').forEach(r => r.remove());
   if (apps.length === 0) {
     empty.style.display = 'block';
@@ -744,6 +801,9 @@ function buildRow(app, idx) {
 
   const repo = getRepo();
   const url = repo ? `https://${repo.split('/')[0]}.github.io/${repo.split('/')[1]}/${app.path}/index.html` : '#';
+  const scaffoldBadge = app.scaffolded
+    ? `<span class="status-badge badge-scaffold" title="Datenstruktur angelegt">📂 Data</span>`
+    : '';
 
   div.innerHTML = `
     <span class="drag-handle" title="Ziehen zum Sortieren">⠿</span>
@@ -752,6 +812,7 @@ function buildRow(app, idx) {
       <div class="app-name">${esc(app.name)}</div>
       <div class="app-meta">
         <span class="status-badge ${app.active === false ? 'badge-hidden' : 'badge-active'}">${app.active === false ? 'Versteckt' : 'Aktiv'}</span>
+        ${scaffoldBadge}
         <span class="app-path">${esc(app.path)}/index.html</span>
         ${app.desc ? `<span>${esc(app.desc)}</span>` : ''}
       </div>
@@ -762,7 +823,6 @@ function buildRow(app, idx) {
     </div>
   `;
 
-  // Drag & Drop
   div.addEventListener('dragstart', e => {
     dragSrcIdx = idx;
     div.classList.add('dragging');
@@ -835,6 +895,9 @@ function openAddModal() {
   document.getElementById('app-delete-btn').style.display = 'none';
   document.getElementById('emoji-preview').textContent = '📦';
   document.getElementById('emoji-custom').value = '';
+  // Scaffold-Option: bei neuer App immer einblenden und aktivieren
+  document.getElementById('scaffold-section').style.display = 'block';
+  document.getElementById('scaffold-enabled').checked = true;
   renderEmojiGrid();
   openModal('app-modal');
 }
@@ -852,6 +915,8 @@ function openEditModal(idx) {
   document.getElementById('emoji-preview').textContent = selectedEmoji;
   document.getElementById('emoji-custom').value = '';
   document.getElementById('app-delete-btn').style.display = 'block';
+  // Scaffold-Option: beim Bearbeiten ausblenden
+  document.getElementById('scaffold-section').style.display = 'none';
   renderEmojiGrid();
   openModal('app-modal');
 }
@@ -865,13 +930,30 @@ async function saveApp() {
   const desc = document.getElementById('app-desc').value.trim();
   const path = document.getElementById('app-path').value.trim();
   const active = document.getElementById('app-active').checked;
+  const doScaffold = editingId === null && document.getElementById('scaffold-enabled').checked;
 
   if (!name) { toast('Bitte einen Namen eingeben', 'err'); return; }
   if (!path) { toast('Bitte einen Pfad eingeben', 'err'); return; }
 
   if (isReadOnly()) { toast('Read-only — Token setzen um zu speichern', 'err'); return; }
 
-  const app = { id: editingId !== null ? apps[editingId].id : Date.now().toString(36), icon: selectedEmoji, name, desc, path, active, updatedAt: new Date().toISOString() };
+  const app = {
+    id: editingId !== null ? apps[editingId].id : Date.now().toString(36),
+    icon: selectedEmoji,
+    name,
+    desc,
+    path,
+    active,
+    updatedAt: new Date().toISOString()
+  };
+
+  // Scaffold-Flag setzen wenn Datenstruktur angelegt wird
+  if (doScaffold) {
+    app.scaffolded = true;
+  } else if (editingId !== null) {
+    // Bestehenden scaffold-Status beibehalten
+    app.scaffolded = apps[editingId].scaffolded || false;
+  }
 
   if (editingId !== null) {
     apps[editingId] = app;
@@ -882,7 +964,25 @@ async function saveApp() {
   closeModal('app-modal');
   renderApps();
   updateStatusBar();
-  await saveAppsToGitHub(editingId !== null ? `App "${name}" bearbeitet` : `App "${name}" hinzugefügt`);
+
+  const commitMsg = editingId !== null ? `App "${name}" bearbeitet` : `App "${name}" hinzugefügt`;
+
+  // Zuerst apps.json speichern, dann Scaffold anlegen (parallel wäre riskant bei Erstanlage)
+  await saveAppsToGitHub(commitMsg);
+
+  if (doScaffold) {
+    setSyncStatus('Lege Datenstruktur an…');
+    try {
+      const result = await scaffoldAppData(app);
+      if (!result.skipped) {
+        toast(`📂 data/${app.path}.json angelegt ✓`, 'ok');
+        setSyncStatus('Datenstruktur angelegt ' + new Date().toLocaleTimeString('de-CH'));
+      }
+    } catch(e) {
+      toast('Scaffold Fehler: ' + e.message, 'err');
+      setSyncStatus('Scaffold fehlgeschlagen');
+    }
+  }
 }
 
 async function deleteApp() {
@@ -939,10 +1039,8 @@ function confirm(msg, icon) {
 function checkPinOnLoad() {
   const hash = localStorage.getItem('portal_pin_hash');
   if (!hash) {
-    // No PIN set — show setup hint, allow setting a PIN
     document.getElementById('pin-setup-hint').style.display = 'block';
     document.getElementById('pin-sub').style.display = 'none';
-    // Bypass overlay — no PIN required
     document.getElementById('pin-overlay').classList.add('hidden');
     return;
   }
@@ -1023,6 +1121,7 @@ function pmKey(k) {
     }, 200);
   }
 }
+
 function pmDel() { pmBuffer1 = pmBuffer1.slice(0,-1); updatePinDots(pmBuffer1,'pmd1-'); }
 
 function pmKey2(k) {
@@ -1031,6 +1130,7 @@ function pmKey2(k) {
   updatePinDots(pmBuffer2, 'pmd2-');
   if (pmBuffer2.length === 6) confirmPinChange();
 }
+
 function pmDel2() { pmBuffer2 = pmBuffer2.slice(0,-1); updatePinDots(pmBuffer2,'pmd2-'); }
 
 async function confirmPinChange() {
@@ -1069,13 +1169,11 @@ function toast(msg, type) {
 // KEYBOARD SUPPORT
 // ═══════════════════════════════════════════
 document.addEventListener('keydown', e => {
-  // PIN overlay
   if (!document.getElementById('pin-overlay').classList.contains('hidden')) {
     if (e.key >= '0' && e.key <= '9') pinKey(e.key);
     if (e.key === 'Backspace') pinDel();
     return;
   }
-  // PIN modal
   if (document.getElementById('pin-modal').classList.contains('open')) {
     if (pmStep === 1) {
       if (e.key >= '0' && e.key <= '9') pmKey(e.key);
@@ -1107,3 +1205,4 @@ init();
 </script>
 </body>
 </html>
+<!-- END OF FILE — Version 1.1.0 -->
