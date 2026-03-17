@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 1.4.1 -->
+<!-- Version 1.4.3 -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -46,7 +46,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 #pstrip{background:var(--surface);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 14px;gap:6px;height:38px;flex-shrink:0;overflow-x:auto}
 #pstrip::-webkit-scrollbar{display:none}
 .ptab{flex-shrink:0;padding:4px 11px;border:1.5px solid var(--bd2);border-radius:9px;background:var(--s2);color:var(--tx2);font-size:.68rem;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
-.ptab.active{border-color:var(--o1);background:rgba(200,90,10,.08);color:var(--o1)}
+.ptab.active{border-color:var(--o1);background:rgba(var(--o1-rgb,200,90,10),.08);color:var(--o1)}
 .ptab-add{padding:4px 9px;border:1.5px dashed var(--bd2);border-radius:9px;background:none;color:var(--tx3);font-size:.68rem;font-weight:600;cursor:pointer;flex-shrink:0}
 .ptab-add:hover{border-color:var(--g1);color:var(--g1)}
 #pstrip-lbl{font-size:.6rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;flex-shrink:0}
@@ -72,7 +72,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .acol-resizer{background:var(--bd);cursor:col-resize;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;user-select:none;-webkit-user-select:none}
 .acol-resizer:hover,.acol-resizer.resizing{background:var(--g1)}
 .acol-resizer::after{content:'';display:block;width:2px;height:24px;border-radius:1px;background:var(--bd2)}
-.acol-resizer:hover::after,.acol-resizer.resizing::after{background:#fff}
+.acol-resizer:hover::after,.acol-resizer.resizing::after{background:var(--surface)}
 .acol-hdr{padding:9px 13px;background:var(--surface);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .acol-hdr h3{font-family:'Playfair Display',serif;font-size:.83rem;color:var(--tx)}
 .acol-sub{font-size:.58rem;color:var(--tx3);margin-top:1px}
@@ -108,7 +108,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 
 /* PROJECT CARDS */
 .pjcard{background:var(--surface);border:1.5px solid var(--bd);border-radius:11px;padding:12px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:11px;transition:all .15s}
-.pjcard.act{border-color:var(--o1);background:rgba(200,90,10,.04)}
+.pjcard.act{border-color:var(--o1);background:rgba(var(--o1-rgb,200,90,10),.04)}
 .pjicon{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--acc),var(--s2));display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
 .pjinfo{flex:1;min-width:0}
 .pjname{font-size:.79rem;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -208,7 +208,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .wt-row .wt-total{font-weight:700;color:var(--g1);font-size:.68rem}
 /* cat group header row */
 .cat-row td{background:var(--bd)!important;font-size:.58rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.07em;padding:3px 8px}
-[data-theme="dark"] .cat-row td{background:#253344!important}
+[data-theme="dark"] .cat-row td{background:var(--bd2)!important}
 
 /* MODAL */
 .moverlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,20,40,.6);backdrop-filter:blur(4px);overflow-y:auto;padding:20px 0 40px;align-items:flex-start;justify-content:center}
@@ -236,10 +236,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .empty p{font-size:.72rem;line-height:1.7}
 
 /* TOAST */
-#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(14px);z-index:99999;background:#1a2b3c;color:#fff;padding:8px 15px;border-radius:16px;font-size:.74rem;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(14px);z-index:99999;background:var(--tx);color:#fff;padding:8px 15px;border-radius:16px;font-size:.74rem;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.ok{background:linear-gradient(135deg,var(--g1),var(--g2))}
-#toast.err{background:linear-gradient(135deg,#c04040,#a02020)}
+#toast.err{background:linear-gradient(135deg,var(--dn),#a02020)}
 
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -252,15 +252,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 @media print{
   @page{size:A4 landscape;margin:5mm 6mm}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  html,body{height:auto!important;overflow:visible!important;background:#fff!important;color:#000!important}
+  html,body{height:auto!important;overflow:visible!important;background:var(--surface)!important;color:#000!important}
   /* Hide everything except the static print layout */
   #topbar,#pstrip,#tab-nav,#view-projects,#view-admin,#view-packlist,#toast,.moverlay,#pin-overlay{display:none!important}
   #static-print{display:block!important}
 }
 /* ── Static Print Layout ── */
-#static-print{font-family:'DM Sans',Arial,sans-serif;background:#fff;color:#111}
-.spl-title{font-family:'Playfair Display',serif;font-size:10pt;font-weight:700;color:#1a2b3c;margin-bottom:1mm}
-.spl-sub{font-size:6pt;color:#5a7a9a;margin-bottom:2.5mm}
+#static-print{font-family:'DM Sans',Arial,sans-serif;background:var(--surface);color:#111}
+.spl-title{font-family:'Playfair Display',serif;font-size:10pt;font-weight:700;color:var(--tx);margin-bottom:1mm}
+.spl-sub{font-size:6pt;color:var(--tx2);margin-bottom:2.5mm}
 .spl-legend{font-size:6pt;color:#666;margin-bottom:2.5mm}
 .spl-legend span{display:inline-block;margin-right:6mm}
 .spl-legend .mh-dot{display:inline-block;width:7px;height:7px;border-radius:2px;background:#1a6b4a;vertical-align:middle;margin-right:2px}
@@ -272,9 +272,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .spl-item{display:flex;align-items:center;gap:3pt;padding:1.5pt 4pt;font-size:6pt;line-height:1.35}
 .spl-item:nth-child(even){background:rgba(0,0,0,0.025)}
 .spl-cb{width:7pt;height:7pt;border:0.7pt solid #888;border-radius:1.5px;flex-shrink:0}
-.spl-name{flex:1;color:#1a2b3c}
+.spl-name{flex:1;color:var(--tx)}
 .spl-prio{flex-shrink:0;font-size:5pt;font-weight:700;padding:0.5pt 3pt;border-radius:3px;border:0.5pt solid}
-.spl-mh{background:#d4f0e0;color:#1a6a3a;border-color:#9ad8b0}
+.spl-mh{background:#d4f0e0;color:var(--g1);border-color:#9ad8b0}
 .spl-op{background:#fff4e8;color:#a04010;border-color:#f0c090}
 
 
@@ -296,7 +296,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 #pin-overlay{display:none!important}
 </style>
 </head>
-<body data-version="1.4.1">
+<body data-version="1.4.3">
 
 <!-- ═══ AUTH OVERLAY ═══ -->
 <div id="auth-overlay" class="hidden">
@@ -1805,24 +1805,12 @@ function adminResizeStart(e, resizerIdx) {
 
 
 // ═══ AUTH ═══
-const AUTH_TTL = 24 * 60 * 60 * 1000; // 24h
-
-function isAuthValid() {
-  if (localStorage.getItem('portal_auth') !== '1') return false;
-  const ts = parseInt(localStorage.getItem('portal_auth_ts') || '0');
-  if (Date.now() - ts > AUTH_TTL) {
-    localStorage.removeItem('portal_auth');
-    localStorage.removeItem('portal_auth_ts');
-    return false;
-  }
-  return true;
-}
+// portal_auth wird im Portal nach PIN-Login in localStorage gesetzt.
+// Gleiche Origin hschachtler.github.io → alle Sub-Apps sehen denselben Wert.
 
 function checkAuth() {
-  if (!isAuthValid()) {
-    document.getElementById('auth-overlay').classList.remove('hidden');
-  } else {
-    document.getElementById('auth-overlay').classList.add('hidden');
+  if (localStorage.getItem('portal_auth') !== '1') {
+    window.location.replace('../index.html');
   }
 }
 function goToPortal() { window.location.replace('../index.html'); }
@@ -2002,4 +1990,4 @@ init();
 
 </body>
 </html>
-<!-- END OF FILE — Version 1.4.1 -->
+<!-- END OF FILE — Version 1.4.3 -->
