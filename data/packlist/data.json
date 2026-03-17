@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "app": "Packlist Manager",
+    "path": "packlist",
+    "createdAt": "2026-03-17T06:08:00.334Z",
+    "version": "1.0.0",
+    "description": ""
+  },
+  "items": [],
+  "categories": [],
+  "tags": [],
+  "settings": {}
+}
