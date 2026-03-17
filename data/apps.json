@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "id": "mmu7ui0z",
+    "icon": "P",
+    "name": "Packlist Manager",
+    "desc": "Packliste erstellen",
+    "path": "packlist",
+    "active": true,
+    "updatedAt": "2026-03-17T06:13:07.139Z",
+    "scaffolded": true
+  }
+]
