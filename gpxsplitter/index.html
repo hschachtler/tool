@@ -669,7 +669,8 @@ function hideError()  { errorMsg.classList.remove('visible'); }
 
 function checkAuth() {
   if (localStorage.getItem('portal_auth') !== '1') {
-    window.location.replace('../index.html');
+    const returnTo = encodeURIComponent(window.location.href);
+    window.location.replace('../index.html?returnTo=' + returnTo);
   }
 }
 
