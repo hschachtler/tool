@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 1.4.5 -->
+<!-- Version 1.4.6 -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -293,7 +293,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 #pin-overlay{display:none!important}
 </style>
 </head>
-<body data-version="1.4.5">
+<body data-version="1.4.6">
 
 <!-- ═══ AUTH OVERLAY ═══ -->
 <div id="auth-overlay" class="hidden">
@@ -394,7 +394,6 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 <div id="view-packlist" class="view">
   <div id="print-hdr">
     <h2 id="print-title">Packliste</h2>
-    <p id="print-sub"></p>
   </div>
   <div class="pack-toolbar">
     <button class="tbtn bgh" onclick="newPL()" title="Neue leere Packliste">➕ Neu</button>
@@ -1014,7 +1013,7 @@ function renderPLView(){
   document.getElementById('pl-save-status').style.color=curPL.id?'var(--g1)':'var(--tx3)';
 
   // Print header sub
-  document.getElementById('print-sub').textContent=(proj?proj.icon+' '+proj.name:'')+' · '+(proj?.year||'')+(curPL.date?' · '+curPL.date:'');
+  // Print header sub — entfernt
 
   // Stats
   const asgn=Object.keys(curPL.assignments||{}).length;
@@ -1983,4 +1982,4 @@ init();
 
 </body>
 </html>
-<!-- END OF FILE — Version 1.4.5 -->
+<!-- END OF FILE — Version 1.4.6 -->
