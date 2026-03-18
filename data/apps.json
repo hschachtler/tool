@@ -1,5 +1,15 @@
 [
   {
+    "id": "mmu7y92w",
+    "icon": "🚲",
+    "name": "BikePacking Manager",
+    "desc": "BikePacking Manager",
+    "path": "bikepacking",
+    "active": true,
+    "updatedAt": "2026-03-17T06:16:02.168Z",
+    "scaffolded": true
+  },
+  {
     "id": "mmu7ui0z",
     "icon": "P",
     "name": "Packlist Manager",
@@ -17,16 +27,6 @@
     "path": "gpxsplitter",
     "active": true,
     "updatedAt": "2026-03-17T06:14:59.177Z",
-    "scaffolded": true
-  },
-  {
-    "id": "mmu7y92w",
-    "icon": "🚲",
-    "name": "BikePacking Manager",
-    "desc": "BikePacking Manager",
-    "path": "bikepacking",
-    "active": true,
-    "updatedAt": "2026-03-17T06:16:02.168Z",
     "scaffolded": true
   }
 ]
