@@ -296,7 +296,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);heigh
     <button class="topbar-btn topbar-btn-weather" onclick="openWeather()">🌤️</button>
     <button class="topbar-btn topbar-btn-map" onclick="showView('map')">🗺️ Karte</button>
     <button class="topbar-btn" id="theme-btn-bp" onclick="toggleThemeBp()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx2)">🌙</button>
-    <button class="topbar-btn" onclick="goToPortal()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx2)" title="Zurück zum Portal">⌂</button>
+    <button class="topbar-btn" onclick="goToPortal()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx2)" title="Admin Login">🔑 Login</button>
     <button id="topbar-login-btn" class="topbar-btn topbar-btn-login" onclick="isAdmin?doLogout():openLoginModal()">
       <span id="topbar-login-icon">🔐</span><span id="topbar-login-label">Login</span>
     </button>
@@ -1001,8 +1001,9 @@ let customPois = []; // own/override POIs
 // GitHub config (stored in localStorage)
 // DEFAULT_REPO: baked in so normal users see the tour without any setup
 // Admin can override via Wizard → GitHub Setup
-const DEFAULT_REPO   = 'hschachtler/rebstein-serbien';
+const DEFAULT_REPO   = 'hschachtler/tool';
 const DEFAULT_BRANCH = 'main';
+const DATA_PREFIX    = 'bikepacking/'; // Unterordner im Repo
 let ghConfig = {repo: DEFAULT_REPO, token:'', branch: DEFAULT_BRANCH};
 
 // ═══════════════════════════════════════════════════════════
@@ -1118,8 +1119,9 @@ async function testGithubConnection() {
 
 async function getGithubFile(path) {
   if (!ghConfig.repo || !ghConfig.token) return null;
+  const fullPath = DATA_PREFIX + path;
   try {
-    const r = await fetch(`https://api.github.com/repos/${ghConfig.repo}/contents/${path}?ref=${ghConfig.branch}&t=${Date.now()}`, {
+    const r = await fetch(`https://api.github.com/repos/${ghConfig.repo}/contents/${fullPath}?ref=${ghConfig.branch}&t=${Date.now()}`, {
       headers: {
         'Authorization': `token ${ghConfig.token}`,
         'Accept': 'application/vnd.github.v3+json',
@@ -1129,7 +1131,7 @@ async function getGithubFile(path) {
     if (r.status === 404) return null; // file doesn't exist yet — OK
     if (!r.ok) {
       const err = await r.json().catch(()=>({}));
-      console.warn(`GitHub GET ${path} failed: ${r.status}`, err.message||'');
+      console.warn(`GitHub GET ${fullPath} failed: ${r.status}`, err.message||'');
       return null;
     }
     const data = await r.json();
@@ -1160,14 +1162,15 @@ async function putGithubFile(path, content, message, sha) {
     console.warn('putGithubFile: no repo/token configured');
     return false;
   }
+  const fullPath = DATA_PREFIX + path;
   const body = {
-    message: message || `Update ${path}`,
+    message: message || `Update ${fullPath}`,
     content: toBase64(content),
     branch: ghConfig.branch || 'main'
   };
   if (sha) body.sha = sha;
   try {
-    const r = await fetch(`https://api.github.com/repos/${ghConfig.repo}/contents/${path}`, {
+    const r = await fetch(`https://api.github.com/repos/${ghConfig.repo}/contents/${fullPath}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${ghConfig.token}`,
@@ -1180,8 +1183,7 @@ async function putGithubFile(path, content, message, sha) {
     if (!r.ok) {
       const err = await r.json().catch(()=>({}));
       const msg = err.message || r.statusText;
-      console.error(`GitHub PUT ${path} failed: ${r.status} – ${msg}`);
-      // Surface specific errors to user
+      console.error(`GitHub PUT ${fullPath} failed: ${r.status} – ${msg}`);
       if (r.status === 401) showToast('❌ GitHub Token ungültig oder abgelaufen', 'error');
       else if (r.status === 403) showToast('❌ Token hat keine Schreibrechte (repo-Scope fehlt)', 'error');
       else if (r.status === 404) showToast(`❌ Repo nicht gefunden: ${ghConfig.repo}`, 'error');
@@ -1203,7 +1205,8 @@ async function fetchPublicGithubFile(path, _retry) {
   if (_retry === undefined) _retry = 0;
   if (!ghConfig.repo) return null;
   const branch = ghConfig.branch || 'main';
-  const url = `https://raw.githubusercontent.com/${ghConfig.repo}/${branch}/${path}?t=${Date.now()}`;
+  const fullPath = DATA_PREFIX + path;
+  const url = `https://raw.githubusercontent.com/${ghConfig.repo}/${branch}/${fullPath}?t=${Date.now()}`;
   try {
     // Use Promise.race for timeout — AbortController cannot be cloned across extension boundaries
     const timeoutPromise = new Promise(function(_, reject) {
@@ -1247,11 +1250,17 @@ async function readGithubFile(path) {
 }
 
 async function loadToursFromGithub() {
-  if (!ghConfig.repo) return; // no repo configured at all
+  if (!ghConfig.repo) return;
   const text = await readGithubFile('tours.json');
   if (text) {
     try { tours = JSON.parse(text); } catch(e) { tours = []; }
-  } else { tours = []; }
+  } else {
+    tours = [];
+    // Datei existiert noch nicht → einmalig anlegen wenn Token vorhanden
+    if (ghConfig.token) {
+      await putGithubFile('tours.json', '[]', 'Init: tours.json anlegen', null);
+    }
+  }
   renderTourTabs();
   // Validate activeTourId — if it's stale/unknown, reset it
   if (activeTourId && !tours.find(t => t.id === activeTourId)) {
@@ -1272,7 +1281,7 @@ async function loadTourPois(tourId) {
   showToast('⏳ Lade POIs & Route…');
 
   // POIs
-  const poisText = await readGithubFile(`tours/${tourId}/pois.json`);
+  const poisText = await readGithubFile(`${tourId}/pois.json`);
   if (poisText) {
     try {
       tourPois = safeParseJsonArray(poisText);
@@ -1287,7 +1296,7 @@ async function loadTourPois(tourId) {
   }
 
   // Route
-  const routeText = await readGithubFile(`tours/${tourId}/route.json`);
+  const routeText = await readGithubFile(`${tourId}/route.json`);
   if (routeText) {
     try {
       const rdata = JSON.parse(routeText);
@@ -1323,16 +1332,16 @@ async function saveToursToGithub() {
       // 2. Save route.json (track points)
       if (currentRoutePoints.length > 0) {
         const routeData = JSON.stringify({ points: currentRoutePoints }, null, 0);
-        const rf = await getGithubFile('tours/' + activeTourId + '/route.json');
-        const ok3 = await putGithubFile('tours/' + activeTourId + '/route.json',
+        const rf = await getGithubFile(activeTourId + '/route.json');
+        const ok3 = await putGithubFile(activeTourId + '/route.json',
           routeData, 'Update route', rf?.sha);
         if (!ok3) return;
       }
 
       // 3. Save POIs
       const allPois = [...tourPois, ...customPois.filter(p => p.isOwn || p.isOverride)];
-      const pf = await getGithubFile('tours/' + activeTourId + '/pois.json');
-      const ok2 = await putGithubFile('tours/' + activeTourId + '/pois.json',
+      const pf = await getGithubFile(activeTourId + '/pois.json');
+      const ok2 = await putGithubFile(activeTourId + '/pois.json',
         JSON.stringify(allPois, null, 2), 'Update POIs', pf?.sha);
       if (!ok2) return;
     }
@@ -1349,8 +1358,8 @@ async function autosaveToGithub(action) {
   showToast('⏳ Speichere in GitHub…');
   try {
     const allPois = [...tourPois, ...customPois.filter(p => p.isOwn || p.isOverride)];
-    const pf = await getGithubFile('tours/' + activeTourId + '/pois.json');
-    const ok = await putGithubFile('tours/' + activeTourId + '/pois.json',
+    const pf = await getGithubFile(activeTourId + '/pois.json');
+    const ok = await putGithubFile(activeTourId + '/pois.json',
       JSON.stringify(allPois, null, 2), action || 'Update POIs', pf?.sha);
     if (ok) showToast('✅ Gespeichert (' + allPois.length + ' POIs)', 'success');
   } catch(e) {
@@ -1362,7 +1371,7 @@ async function saveRiderPosition(lat, lon) {
   const rKm = routeKm();
   const data = JSON.stringify({ lat, lon, ts: Date.now(), routeKm: rKm });
   if (ghConfig.repo && ghConfig.token) {
-    const path = activeTourId ? `tours/${activeTourId}/rider.json` : 'rider.json';
+    const path = activeTourId ? `${activeTourId}/rider.json` : 'rider.json';
     const f = await getGithubFile(path);
     await putGithubFile(path, data, 'Update rider position', f?.sha);
   }
@@ -1381,9 +1390,9 @@ async function loadRiderPosition() {
   if (ghConfig.repo) {
       // Use raw GitHub URL (public read, no token needed)
       // Try tour-specific path first, fallback to legacy root path
-      const base = `https://raw.githubusercontent.com/${ghConfig.repo}/${ghConfig.branch}`;
-      const tourPath = activeTourId ? `${base}/tours/${activeTourId}/rider.json?t=${Date.now()}` : null;
-      const rootPath = `${base}/rider.json?t=${Date.now()}`;
+      const base = `https://raw.githubusercontent.com/${ghConfig.repo}/${ghConfig.branch}/${DATA_PREFIX}`;
+      const tourPath = activeTourId ? `${base}${activeTourId}/rider.json?t=${Date.now()}` : null;
+      const rootPath = `${base}rider.json?t=${Date.now()}`;
       let r = tourPath ? await fetch(tourPath) : null;
       if (!r || !r.ok) r = await fetch(rootPath);
       if (r.ok) data = await r.json();
@@ -1486,11 +1495,11 @@ Dies löscht auch alle POIs und die Route dieser Tour auf GitHub.`)) return;
   // Delete files on GitHub (replace with empty/tombstone)
   if (ghConfig.repo && ghConfig.token) {
     // Delete pois.json
-    const pf = await getGithubFile('tours/' + id + '/pois.json');
-    if (pf) await putGithubFile('tours/' + id + '/pois.json', '[]', 'Delete tour ' + id, pf.sha);
+    const pf = await getGithubFile(id + '/pois.json');
+    if (pf) await putGithubFile(id + '/pois.json', '[]', 'Delete tour ' + id, pf.sha);
     // Delete route.json
-    const rf = await getGithubFile('tours/' + id + '/route.json');
-    if (rf) await putGithubFile('tours/' + id + '/route.json', '{"points":[]}', 'Delete route ' + id, rf.sha);
+    const rf = await getGithubFile(id + '/route.json');
+    if (rf) await putGithubFile(id + '/route.json', '{"points":[]}', 'Delete route ' + id, rf.sha);
     // Update tours.json
     const tf = await getGithubFile('tours.json');
     await putGithubFile('tours.json', JSON.stringify(tours, null, 2), 'Remove tour ' + id, tf?.sha);
@@ -1537,7 +1546,7 @@ async function wizCreateTour() {
   tours.push(tour);
   showToast('⏳ Tour wird erstellt…');
   if (ghConfig.repo && ghConfig.token) {
-    await putGithubFile('tours/' + id + '/pois.json', '[]', 'Create tour ' + name);
+    await putGithubFile(id + '/pois.json', '[]', 'Create tour ' + name);
     const tf = await getGithubFile('tours.json');
     await putGithubFile('tours.json', JSON.stringify(tours, null, 2), 'Add tour ' + name, tf?.sha);
   }
@@ -1569,7 +1578,7 @@ async function saveNewTour() {
   closeNewTourModal();
   showToast('⏳ Tour wird erstellt…');
   if (ghConfig.repo && ghConfig.token) {
-    await putGithubFile('tours/' + id + '/pois.json', '[]', 'Create tour ' + name);
+    await putGithubFile(id + '/pois.json', '[]', 'Create tour ' + name);
     const tf = await getGithubFile('tours.json');
     await putGithubFile('tours.json', JSON.stringify(tours, null, 2), 'Add tour', tf?.sha);
     showToast('✅ Tour erstellt!', 'success');
@@ -1730,8 +1739,8 @@ function analyzeGpx(text, filename) {
   // Auto-save route to GitHub if tour already selected
   if (activeTourId && ghConfig.token) {
     const routeData = JSON.stringify({ points: currentRoutePoints }, null, 0);
-    getGithubFile('tours/' + activeTourId + '/route.json').then(rf => {
-      putGithubFile('tours/' + activeTourId + '/route.json', routeData, 'Save route', rf?.sha)
+    getGithubFile(activeTourId + '/route.json').then(rf => {
+      putGithubFile(activeTourId + '/route.json', routeData, 'Save route', rf?.sha)
         .then(ok => { if(ok) showToast('✅ Route in GitHub gespeichert', 'success'); });
     });
   }
@@ -1865,8 +1874,8 @@ function handleEnrichedFiles(files) {
         currentRoutePoints = trackPoints.map(p=>[p.lat,p.lon]);
         if (activeTourId && ghConfig.token) {
           const rd = JSON.stringify({ points: currentRoutePoints }, null, 0);
-          getGithubFile('tours/' + activeTourId + '/route.json').then(rf =>
-            putGithubFile('tours/' + activeTourId + '/route.json', rd, 'Save route', rf?.sha));
+          getGithubFile(activeTourId + '/route.json').then(rf =>
+            putGithubFile(activeTourId + '/route.json', rd, 'Save route', rf?.sha));
         }
       }
 
@@ -4255,7 +4264,7 @@ async function uploadPhoto() {
     const statusEl = document.getElementById('photo-github-status');
     if (statusEl) statusEl.textContent = '💾 Speichere Link in GitHub…';
     await savePhotosToGithub();
-    if (statusEl) statusEl.textContent = '✅ In GitHub gespeichert: tours/' + activeTourId + '/photos.json';
+    if (statusEl) statusEl.textContent = '✅ In GitHub gespeichert: ' + activeTourId + '/photos.json';
 
     closePhotoModal();
     showToast('✅ Foto hochgeladen & in GitHub gespeichert!', 'success');
@@ -4269,7 +4278,7 @@ async function uploadPhoto() {
 
 async function savePhotosToGithub() {
   if (!ghConfig.repo || !ghConfig.token) return;
-  const path = activeTourId ? `tours/${activeTourId}/photos.json` : 'photos.json';
+  const path = activeTourId ? `${activeTourId}/photos.json` : 'photos.json';
   const pf = await getGithubFile(path);
   await putGithubFile(path, JSON.stringify(photos, null, 2), 'Update photos', pf?.sha);
 }
@@ -4277,12 +4286,12 @@ async function savePhotosToGithub() {
 async function loadPhotosFromGithub() {
   if (!ghConfig.repo) return;
   try {
-    const base = `https://raw.githubusercontent.com/${ghConfig.repo}/${ghConfig.branch||'main'}`;
-    const path = activeTourId ? `tours/${activeTourId}/photos.json` : 'photos.json';
+    const base = `https://raw.githubusercontent.com/${ghConfig.repo}/${ghConfig.branch||'main'}/${DATA_PREFIX}`;
+    const path = activeTourId ? `${activeTourId}/photos.json` : 'photos.json';
     // Use raw URL (public, fast, no token) — add cache-bust
-    let r = await fetch(`${base}/${path}?t=${Date.now()}`);
+    let r = await fetch(`${base}${path}?t=${Date.now()}`);
     // Fallback to root for legacy data
-    if (!r.ok && activeTourId) r = await fetch(`${base}/photos.json?t=${Date.now()}`);
+    if (!r.ok && activeTourId) r = await fetch(`${base}photos.json?t=${Date.now()}`);
     if (r.ok) {
       const text = await r.text();
       photos = JSON.parse(text);
@@ -4615,7 +4624,7 @@ function checkAuth() {
     window.location.replace('../index.html');
   }
 }
-function goToPortal() { window.location.replace('../index.html'); }
+function goToPortal() { window.location.replace('../index.html?admin'); }
 
 // ═══ THEME ═══
 function applyThemeBp() {
