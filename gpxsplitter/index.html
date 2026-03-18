@@ -479,6 +479,7 @@ async function doSplit() {
   splitBtn.disabled = true;
   generatedFiles = [];
   resultsWrap.classList.remove('visible');
+  try {
 
   // ── 1. Compute ideal split distances ──────────────────────────────────────
   const targetDist = totalDistKm / n; // km per chunk
@@ -496,7 +497,8 @@ async function doSplit() {
   }
   splitIndices.push(allPoints.length - 1); // end
 
-
+  // ── 2. Build chunks ────────────────────────────────────────────────────────
+  const chunks = [];
   for (let i = 0; i < n; i++) {
     const from = splitIndices[i];
     const to   = splitIndices[i+1];
@@ -664,6 +666,12 @@ async function doSplit() {
 
   progWrap.classList.remove('visible');
   splitBtn.disabled = false;
+  } catch(err) {
+    progWrap.classList.remove('visible');
+    splitBtn.disabled = false;
+    showError('Fehler: ' + err.message);
+    console.error('doSplit error:', err);
+  }
 }
 
 // ─── GEOCODE WITH RATE LIMIT ─────────────────────────────────────────────────
