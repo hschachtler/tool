@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<!-- Version 1.3.3 — App Portal -->
+<!-- Version 1.5.0 — App Portal -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>App Portal</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -25,10 +27,24 @@
   --dn:#e04040;--dnb:#3a1818;
   --sh:0 2px 10px rgba(0,0,0,.3);--shlg:0 6px 28px rgba(0,0,0,.5);
 }
-html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);display:flex;flex-direction:column;overflow:hidden;transition:background .3s,color .3s}
+html,body{
+  height:100dvh;
+  font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:background .3s,color .3s;
+  padding-bottom:env(safe-area-inset-bottom);
+  padding-left:env(safe-area-inset-left);
+  padding-right:env(safe-area-inset-right);
+}
 
 /* ═══ TOPBAR ═══ */
-#topbar{background:var(--surface);border-bottom:1px solid var(--bd);padding:0 16px;display:flex;align-items:center;height:50px;flex-shrink:0;box-shadow:var(--sh);z-index:200;gap:10px}
+#topbar{
+  background:var(--surface);border-bottom:1px solid var(--bd);
+  padding:0 12px 0 14px;display:flex;align-items:center;
+  height:50px;flex-shrink:0;box-shadow:var(--sh);z-index:200;gap:8px;
+  padding-left:max(14px, env(safe-area-inset-left));
+  padding-right:max(12px, env(safe-area-inset-right));
+}
 #topbar h1{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--tx);white-space:nowrap}
 #topbar h1 span{color:var(--o1)}
 #hdr-r{display:flex;gap:6px;margin-left:auto;align-items:center}
@@ -37,6 +53,26 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .bg{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;box-shadow:0 1px 5px rgba(0,0,0,.15)}
 .bo{background:linear-gradient(135deg,var(--o1),var(--o2));color:#fff;box-shadow:0 1px 5px rgba(0,0,0,.15)}
 .bgh{background:var(--s2);border:1px solid var(--bd2);color:var(--tx2)}
+
+/* ═══ VERSION BADGE in Topbar ═══ */
+#version-badge{
+  font-family:'DM Sans',sans-serif;
+  font-size:.72rem;font-weight:700;
+  color:var(--tx2);
+  background:var(--s2);
+  border:1.5px solid var(--bd2);
+  border-radius:10px;
+  padding:4px 9px;
+  letter-spacing:.03em;
+  white-space:nowrap;
+  flex-shrink:0;
+  user-select:none;
+}
+[data-theme="dark"] #version-badge{
+  color:var(--tx2);
+  background:var(--s2);
+  border-color:var(--bd2);
+}
 
 /* ═══ STATUS BAR ═══ */
 #statusbar{background:var(--s2);border-bottom:1px solid var(--bd);padding:5px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;font-size:.62rem;color:var(--tx3);flex-wrap:wrap}
@@ -175,7 +211,13 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .pin-setup-hint{font-size:.68rem;color:var(--tx3);margin-top:20px;text-align:center;line-height:1.6}
 
 /* ═══ TOAST ═══ */
-#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(14px);z-index:99999;background:var(--tx);color:var(--surface);padding:9px 18px;border-radius:18px;font-size:.74rem;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap}
+#toast{
+  position:fixed;bottom:max(18px, env(safe-area-inset-bottom));
+  left:50%;transform:translateX(-50%) translateY(14px);
+  z-index:99999;background:var(--tx);color:var(--surface);
+  padding:9px 18px;border-radius:18px;font-size:.74rem;font-weight:600;
+  opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap
+}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.ok{background:linear-gradient(135deg,var(--g1),var(--g2))}
 #toast.err{background:linear-gradient(135deg,var(--dn),#a02020)}
@@ -198,9 +240,33 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+
+/* ═══ QR CODE BOX ═══ */
+#qr-section{display:none;flex-direction:column;align-items:center;gap:10px;padding:14px;background:var(--s2);border:1.5px solid var(--bd2);border-radius:12px}
+#qr-section.open{display:flex}
+#qr-canvas-wrap{background:#fff;padding:12px;border-radius:10px;box-shadow:var(--sh);display:flex;align-items:center;justify-content:center}
+#qr-canvas-wrap canvas,#qr-canvas-wrap img{display:block}
+.qr-hint{font-size:.65rem;color:var(--tx3);text-align:center;line-height:1.6}
+.qr-countdown{font-size:.72rem;font-weight:700;color:var(--o1)}
+.qr-divider{display:flex;align-items:center;gap:8px;width:100%;margin:2px 0}
+.qr-divider::before,.qr-divider::after{content:'';flex:1;height:1px;background:var(--bd2)}
+.qr-divider span{font-size:.6rem;color:var(--tx3);white-space:nowrap}
+
+/* ═══ QR SCANNER ═══ */
+#qr-scan-section{display:none;flex-direction:column;align-items:center;gap:10px;padding:14px;background:var(--s2);border:1.5px solid var(--bd2);border-radius:12px}
+#qr-scan-section.open{display:flex}
+#qr-video-wrap{position:relative;width:100%;max-width:280px;border-radius:10px;overflow:hidden;background:#000;aspect-ratio:1}
+#qr-video{width:100%;height:100%;object-fit:cover;display:block}
+#qr-scan-frame{position:absolute;inset:10%;border:2.5px solid var(--o1);border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,.45)}
+#qr-scan-line{position:absolute;left:10%;right:10%;height:2px;background:linear-gradient(90deg,transparent,var(--o1),transparent);animation:scanline 1.8s ease-in-out infinite;top:10%}
+@keyframes scanline{0%,100%{top:12%}50%{top:86%}}
+.scan-hint{font-size:.65rem;color:var(--tx3);text-align:center;line-height:1.6}
+#scan-status{font-size:.72rem;font-weight:600;text-align:center;min-height:18px}
+#scan-status.ok{color:var(--g1)}
+#scan-status.err{color:var(--dn)}
 </style>
 </head>
-<body data-version="1.3.3">
+<body data-version="1.5.0">
 
 <!-- ═══ PIN OVERLAY ═══ -->
 <div id="pin-overlay">
@@ -237,6 +303,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 <!-- ═══ TOPBAR ═══ -->
 <div id="topbar">
   <h1>App <span>Portal</span></h1>
+  <span id="version-badge">v1.5.0</span>
   <div id="hdr-r">
     <button class="tbtn bgh" onclick="openTokenModal()" id="token-btn">🔒 Token</button>
     <button class="tbtn bgh" onclick="openPinModal()">🔑 PIN</button>
@@ -282,7 +349,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
         </div>
       </div>
       <div>
-        <label class="flbl">GitHub Token (wird in sessionStorage gespeichert)</label>
+        <label class="flbl">GitHub Token (wird in localStorage gespeichert)</label>
         <div class="setup-row">
           <div class="fi-wrap">
             <input class="fi" id="setup-token" type="password" placeholder="ghp_..." autocomplete="off">
@@ -291,7 +358,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
         </div>
       </div>
       <div style="font-size:.62rem;color:var(--tx3);line-height:1.7">
-        ℹ️ Token benötigt <strong style="color:var(--tx2)">repo</strong>-Berechtigung. Er wird nur im SessionStorage dieser Browsersitzung gehalten — nie im Code oder GitHub.
+        ℹ️ Token benötigt <strong style="color:var(--tx2)">repo</strong>-Berechtigung. Er wird im localStorage dieser Browser-Installation gespeichert.
       </div>
     </div>
   </div>
@@ -438,7 +505,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
   <div class="mbox">
     <div class="mhdr or">
       <span class="mhdr-t">🔒 GitHub Token</span>
-      <button class="mcls" onclick="closeModal('token-modal')">✕</button>
+      <button class="mcls" onclick="closeTokenModal()">✕</button>
     </div>
     <div class="mbody">
       <div>
@@ -448,19 +515,50 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
           <button class="tbtn bg" onclick="saveRepoFromModal()">OK</button>
         </div>
       </div>
+
       <div>
-        <label class="flbl">GitHub Token (sessionStorage — nur diese Sitzung)</label>
+        <label class="flbl">GitHub Token (localStorage)</label>
         <div style="display:flex;gap:8px">
           <input class="fi" id="modal-token" type="password" placeholder="ghp_…" autocomplete="off" style="flex:1">
           <button class="tbtn bg" onclick="saveTokenFromModal()">OK</button>
         </div>
         <div style="font-size:.6rem;color:var(--tx3);margin-top:6px;line-height:1.6">
-          Benötigte Berechtigung: <strong style="color:var(--tx2)">public_repo</strong> (öffentliches Repo) oder <strong style="color:var(--tx2)">repo</strong> (privates Repo).<br>
-          Der Token wird <strong style="color:var(--tx2)">nie gespeichert</strong> — nach dem Schliessen des Browsers ist er weg.
+          Berechtigung: <strong style="color:var(--tx2)">public_repo</strong> oder <strong style="color:var(--tx2)">repo</strong> (privates Repo).
         </div>
       </div>
+
+      <!-- QR ANZEIGEN (PC: Token vorhanden) -->
+      <div id="qr-show-wrap" style="display:none">
+        <div class="qr-divider"><span>Token auf Handy übertragen</span></div>
+        <button class="tbtn bo" style="width:100%;justify-content:center;gap:6px" onclick="toggleQrCode()">
+          <span id="qr-btn-icon">📱</span> <span id="qr-btn-label">QR-Code anzeigen</span>
+        </button>
+        <div id="qr-section">
+          <div class="qr-hint">⚠️ Nur in sicherer Umgebung anzeigen<br>Gültig für <span class="qr-countdown" id="qr-countdown">60</span> Sekunden</div>
+          <div id="qr-canvas-wrap"><div id="qr-code-el"></div></div>
+          <div class="qr-hint">QR-Code mit dem Handy scannen →<br>Token wird automatisch gespeichert</div>
+        </div>
+      </div>
+
+      <!-- QR SCANNEN (Handy: kein Token) -->
+      <div id="qr-scan-wrap" style="display:none">
+        <div class="qr-divider"><span>Token vom PC übernehmen</span></div>
+        <button class="tbtn bg" style="width:100%;justify-content:center;gap:6px" onclick="toggleQrScanner()">
+          <span id="scan-btn-icon">📷</span> <span id="scan-btn-label">QR-Code scannen</span>
+        </button>
+        <div id="qr-scan-section">
+          <div id="qr-video-wrap">
+            <video id="qr-video" playsinline muted></video>
+            <div id="qr-scan-frame"></div>
+            <div id="qr-scan-line"></div>
+          </div>
+          <div class="scan-hint">Halte den QR-Code vom PC in den Rahmen</div>
+          <div id="scan-status"></div>
+        </div>
+      </div>
+
       <div id="token-status-box" style="background:var(--s2);border:1px solid var(--bd2);border-radius:9px;padding:10px 12px;font-size:.68rem;color:var(--tx2);line-height:1.8"></div>
-      <button class="fcancel" onclick="closeModal('token-modal')">Schliessen</button>
+      <button class="fcancel" onclick="closeTokenModal()">Schliessen</button>
     </div>
   </div>
 </div>
@@ -497,8 +595,9 @@ let pmStep = 1;
 let confirmResolve = null;
 let dragSrcIdx = null;
 
-const STORAGE_KEY_APPS = 'portal_apps_cache';
-const STORAGE_KEY_REPO = 'portal_repo';
+const STORAGE_KEY_APPS  = 'portal_apps_cache';
+const STORAGE_KEY_REPO  = 'portal_repo';
+const STORAGE_KEY_TOKEN = 'portal_gh_token';
 const STORAGE_KEY_THEME = 'portal_theme';
 const DATA_PATH = 'data/apps.json';
 const BRANCH = 'main';
@@ -509,6 +608,19 @@ const EMOJI_LIST = [
   '💡','🔑','📝','📋','🛠️','⚙️','🔍','📡','🧭','🌐',
   '🏠','🏢','🎨','📰','🧩','🎲','🌱','🔗','💬','📌'
 ];
+
+// ═══════════════════════════════════════════
+// UTILITIES (Pflicht gemäss Design System)
+// ═══════════════════════════════════════════
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+// Alias für bestehende Verwendungen im Code
+function esc(s) { return escHtml(s); }
+
+function uid() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
 
 // ═══════════════════════════════════════════
 // INIT
@@ -548,28 +660,202 @@ function toggleTheme() {
 }
 
 // ═══════════════════════════════════════════
+// TOKEN — localStorage (Regelwerk-konform)
+// ═══════════════════════════════════════════
+function getRepo()  { return localStorage.getItem(STORAGE_KEY_REPO)  || ''; }
+function getToken() { return localStorage.getItem(STORAGE_KEY_TOKEN) || ''; }
+function isReadOnly() { return !getToken(); }
+
+function setToken(val) {
+  if (val) {
+    localStorage.setItem(STORAGE_KEY_TOKEN, val);
+  } else {
+    localStorage.removeItem(STORAGE_KEY_TOKEN);
+  }
+}
+
+// ═══════════════════════════════════════════
 // SETUP / CONFIG
 // ═══════════════════════════════════════════
 function openTokenModal() {
-  const repo = getRepo();
+  const repo  = getRepo();
   const token = getToken();
-  const repoInput = document.getElementById('modal-repo');
+  const repoInput  = document.getElementById('modal-repo');
   const tokenInput = document.getElementById('modal-token');
   if (repoInput) repoInput.value = repo;
   tokenInput.value = '';
   tokenInput.placeholder = token ? '••••••••••••• (gesetzt — neu eingeben zum Ändern)' : 'ghp_…';
+  // QR-Sektionen steuern: PC mit Token → QR anzeigen; Handy ohne Token → QR scannen
+  document.getElementById('qr-show-wrap').style.display = token ? 'block' : 'none';
+  document.getElementById('qr-scan-wrap').style.display = !token ? 'block' : 'none';
+  // Sektionen einklappen
+  document.getElementById('qr-section').classList.remove('open');
+  document.getElementById('qr-scan-section').classList.remove('open');
+  document.getElementById('qr-btn-label').textContent = 'QR-Code anzeigen';
+  document.getElementById('qr-btn-icon').textContent = '📱';
+  document.getElementById('scan-btn-label').textContent = 'QR-Code scannen';
+  document.getElementById('scan-btn-icon').textContent = '📷';
   updateTokenStatusBox();
   openModal('token-modal');
+}
+
+function closeTokenModal() {
+  stopQrScanner();
+  stopQrCountdown();
+  clearQrCode();
+  closeModal('token-modal');
 }
 
 function updateTokenStatusBox() {
   const box = document.getElementById('token-status-box');
   if (!box) return;
-  const repo = getRepo();
+  const repo  = getRepo();
   const token = getToken();
   box.innerHTML =
-    `<div>📁 Repo: <strong style="color:var(--tx)">${repo || '— nicht gesetzt'}</strong></div>` +
-    `<div>🔒 Token: <strong style="color:${token ? 'var(--g1)' : 'var(--o1)'}">${token ? '✓ aktiv (diese Sitzung)' : '— nicht gesetzt (Read-only)'}</strong></div>`;
+    `<div>📁 Repo: <strong style="color:var(--tx)">${escHtml(repo) || '— nicht gesetzt'}</strong></div>` +
+    `<div>🔒 Token: <strong style="color:${token ? 'var(--g1)' : 'var(--o1)'}">${token ? '✓ gesetzt (localStorage)' : '— nicht gesetzt (Read-only)'}</strong></div>`;
+}
+
+// ─── QR CODE ANZEIGEN ────────────────────────────────────────
+let qrCountdownTimer = null;
+let qrCountdownVal   = 60;
+
+function toggleQrCode() {
+  const sec = document.getElementById('qr-section');
+  const isOpen = sec.classList.contains('open');
+  if (isOpen) {
+    sec.classList.remove('open');
+    document.getElementById('qr-btn-label').textContent = 'QR-Code anzeigen';
+    document.getElementById('qr-btn-icon').textContent = '📱';
+    stopQrCountdown();
+    clearQrCode();
+  } else {
+    sec.classList.add('open');
+    document.getElementById('qr-btn-label').textContent = 'QR-Code ausblenden';
+    document.getElementById('qr-btn-icon').textContent = '🙈';
+    generateQrCode();
+    startQrCountdown();
+  }
+}
+
+function clearQrCode() {
+  const el = document.getElementById('qr-code-el');
+  el.innerHTML = '';
+}
+
+function generateQrCode() {
+  const token = getToken();
+  if (!token) return;
+  clearQrCode();
+  // QRCode.js erwartet ein leeres Ziel-Element
+  new QRCode(document.getElementById('qr-code-el'), {
+    text: token,
+    width: 200,
+    height: 200,
+    colorDark: '#1a2b3c',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+}
+
+function startQrCountdown() {
+  stopQrCountdown();
+  qrCountdownVal = 60;
+  const el = document.getElementById('qr-countdown');
+  if (el) el.textContent = qrCountdownVal;
+  qrCountdownTimer = setInterval(() => {
+    qrCountdownVal--;
+    if (el) el.textContent = qrCountdownVal;
+    if (qrCountdownVal <= 0) {
+      stopQrCountdown();
+      clearQrCode();
+      document.getElementById('qr-section').classList.remove('open');
+      document.getElementById('qr-btn-label').textContent = 'QR-Code anzeigen';
+      document.getElementById('qr-btn-icon').textContent = '📱';
+      toast('QR-Code abgelaufen', '');
+    }
+  }, 1000);
+}
+
+function stopQrCountdown() {
+  if (qrCountdownTimer) { clearInterval(qrCountdownTimer); qrCountdownTimer = null; }
+}
+
+// ─── QR CODE SCANNEN ─────────────────────────────────────────
+let qrVideoStream  = null;
+let qrScanTimer    = null;
+let qrScanCanvas   = null;
+let qrScanCtx      = null;
+
+function toggleQrScanner() {
+  const sec = document.getElementById('qr-scan-section');
+  const isOpen = sec.classList.contains('open');
+  if (isOpen) {
+    stopQrScanner();
+    sec.classList.remove('open');
+    document.getElementById('scan-btn-label').textContent = 'QR-Code scannen';
+    document.getElementById('scan-btn-icon').textContent = '📷';
+  } else {
+    sec.classList.add('open');
+    document.getElementById('scan-btn-label').textContent = 'Scanner stoppen';
+    document.getElementById('scan-btn-icon').textContent = '⏹';
+    document.getElementById('scan-status').textContent = '';
+    document.getElementById('scan-status').className = '';
+    startQrScanner();
+  }
+}
+
+async function startQrScanner() {
+  const video = document.getElementById('qr-video');
+  const statusEl = document.getElementById('scan-status');
+  try {
+    qrVideoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } }
+    });
+    video.srcObject = qrVideoStream;
+    await video.play();
+    // Canvas für jsQR Analyse
+    qrScanCanvas = document.createElement('canvas');
+    qrScanCtx    = qrScanCanvas.getContext('2d');
+    statusEl.textContent = 'Kamera aktiv — QR-Code einblenden…';
+    statusEl.className   = '';
+    qrScanTimer = setInterval(() => scanQrFrame(video, statusEl), 200);
+  } catch(e) {
+    statusEl.textContent = 'Kamera nicht verfügbar: ' + e.message;
+    statusEl.className   = 'err';
+  }
+}
+
+function scanQrFrame(video, statusEl) {
+  if (!video.videoWidth) return;
+  qrScanCanvas.width  = video.videoWidth;
+  qrScanCanvas.height = video.videoHeight;
+  qrScanCtx.drawImage(video, 0, 0);
+  const imgData = qrScanCtx.getImageData(0, 0, qrScanCanvas.width, qrScanCanvas.height);
+  const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
+  if (code && code.data && code.data.startsWith('ghp_')) {
+    stopQrScanner();
+    setToken(code.data);
+    updateStatusBar();
+    updateTokenStatusBox();
+    // QR-UI zurücksetzen
+    document.getElementById('qr-scan-section').classList.remove('open');
+    document.getElementById('scan-btn-label').textContent = 'QR-Code scannen';
+    document.getElementById('scan-btn-icon').textContent = '📷';
+    // Token-Abschnitt ausblenden, show-wrap einblenden
+    document.getElementById('qr-scan-wrap').style.display = 'none';
+    document.getElementById('qr-show-wrap').style.display = 'block';
+    // Input-Placeholder aktualisieren
+    document.getElementById('modal-token').placeholder = '••••••••••••• (gesetzt — neu eingeben zum Ändern)';
+    toast('✅ Token via QR übernommen', 'ok');
+  }
+}
+
+function stopQrScanner() {
+  if (qrScanTimer)   { clearInterval(qrScanTimer); qrScanTimer = null; }
+  if (qrVideoStream) { qrVideoStream.getTracks().forEach(t => t.stop()); qrVideoStream = null; }
+  const video = document.getElementById('qr-video');
+  if (video) { video.srcObject = null; }
 }
 
 function saveRepoFromModal() {
@@ -588,12 +874,12 @@ function saveRepoFromModal() {
 function saveTokenFromModal() {
   const val = document.getElementById('modal-token').value.trim();
   if (!val) { toast('Kein Token eingegeben', 'err'); return; }
-  sessionStorage.setItem('gh_token', val);
+  setToken(val);
   document.getElementById('modal-token').value = '';
   document.getElementById('modal-token').placeholder = '••••••••••••• (gesetzt — neu eingeben zum Ändern)';
   updateStatusBar();
   updateTokenStatusBox();
-  toast('Token gespeichert (Session) ✓', 'ok');
+  toast('Token gespeichert ✓', 'ok');
 }
 
 function saveRepo() {
@@ -609,37 +895,33 @@ function saveRepo() {
 function saveToken() {
   const val = document.getElementById('setup-token').value.trim();
   if (!val) { toast('Kein Token eingegeben', 'err'); return; }
-  sessionStorage.setItem('gh_token', val);
+  setToken(val);
   document.getElementById('setup-token').value = '';
   updateStatusBar();
-  toast('Token gespeichert (Session)', 'ok');
+  toast('Token gespeichert ✓', 'ok');
 }
-
-function getRepo() { return localStorage.getItem(STORAGE_KEY_REPO) || ''; }
-function getToken() { return sessionStorage.getItem('gh_token') || ''; }
-function isReadOnly() { return !getToken(); }
 
 function updateStatusBar() {
   const token = getToken();
-  const repo = getRepo();
+  const repo  = getRepo();
   const tokenDot = document.getElementById('sb-token-dot');
   const tokenLbl = document.getElementById('sb-token-lbl');
-  const repoDot = document.getElementById('sb-repo-dot');
-  const repoLbl = document.getElementById('sb-repo-lbl');
+  const repoDot  = document.getElementById('sb-repo-dot');
+  const repoLbl  = document.getElementById('sb-repo-lbl');
 
   if (token) {
     tokenDot.className = 'sb-dot ok';
-    tokenLbl.textContent = 'Token: ✓ gesetzt';
+    tokenLbl.textContent = '☁️ Token: ✓';
   } else {
     tokenDot.className = 'sb-dot warn';
-    tokenLbl.textContent = 'Token: Read-only';
+    tokenLbl.textContent = '🔑 Kein Token';
   }
   if (repo) {
     repoDot.className = 'sb-dot ok';
     repoLbl.textContent = 'Repo: ' + repo;
   } else {
     repoDot.className = 'sb-dot err';
-    repoLbl.textContent = 'Repo: nicht konfiguriert';
+    repoLbl.textContent = '⚠️ Repo: nicht konfiguriert';
   }
   const tokenBtn = document.getElementById('token-btn');
   if (tokenBtn) tokenBtn.textContent = token ? '🔓 Token' : '🔒 Token';
@@ -655,7 +937,7 @@ function showSetup() {
 // GITHUB API
 // ═══════════════════════════════════════════
 async function ghGet(path) {
-  const repo = getRepo();
+  const repo  = getRepo();
   const token = getToken();
   const headers = { 'Accept': 'application/vnd.github+json' };
   if (token) headers['Authorization'] = 'Bearer ' + token;
@@ -663,7 +945,6 @@ async function ghGet(path) {
   try {
     res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${BRANCH}`, { headers });
   } catch(netErr) {
-    // TypeError: Failed to fetch — Netzwerkfehler, CORS oder privates Repo ohne Token
     const hint = !token ? ' (Token fehlt — privates Repo?)' : ' (Netzwerk pruefen)';
     throw new Error('Netzwerkfehler' + hint);
   }
@@ -679,7 +960,7 @@ async function ghGet(path) {
 }
 
 async function ghPut(path, content, sha, message) {
-  const repo = getRepo();
+  const repo  = getRepo();
   const token = getToken();
   if (!token) throw new Error('Kein Token — Read-only');
   const body = {
@@ -694,7 +975,7 @@ async function ghPut(path, content, sha, message) {
     body: JSON.stringify(body)
   });
   if (res.status === 409) {
-    const fresh = await ghGet(path);
+    const fresh  = await ghGet(path);
     const newSha = fresh ? fresh.sha : null;
     body.sha = newSha;
     const retry = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
@@ -754,7 +1035,7 @@ function processUploadFile(file) {
     const drop = document.getElementById('upload-drop');
     drop.classList.add('has-file');
     document.getElementById('upload-label').innerHTML =
-      `✅ <strong style="color:var(--g1)">${esc(file.name)}</strong> <span style="color:var(--tx3);font-size:.65rem">(${(file.size/1024).toFixed(1)} KB)</span>`;
+      `✅ <strong style="color:var(--g1)">${escHtml(file.name)}</strong> <span style="color:var(--tx3);font-size:.65rem">(${(file.size/1024).toFixed(1)} KB)</span>`;
   };
   reader.readAsText(file);
 }
@@ -771,7 +1052,7 @@ function resetUpload() {
 }
 
 async function ghPutRaw(path, base64Content, sha, message) {
-  const repo = getRepo();
+  const repo  = getRepo();
   const token = getToken();
   if (!token) throw new Error('Kein Token — Read-only');
   const body = { message, content: base64Content, branch: BRANCH };
@@ -787,7 +1068,7 @@ async function ghPutRaw(path, base64Content, sha, message) {
     throw new Error('Netzwerkfehler beim Upload');
   }
   if (res.status === 409) {
-    const fresh = await ghGet(path);
+    const fresh  = await ghGet(path);
     const newSha = fresh ? fresh.sha : null;
     body.sha = newSha;
     const retry = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
@@ -805,7 +1086,6 @@ async function ghPutRaw(path, base64Content, sha, message) {
 async function uploadIndexHtml(app) {
   if (!uploadFileData) return { skipped: true };
   const filePath = `${app.path}/index.html`;
-  // SHA holen falls Datei schon existiert (Update statt Fehler)
   let sha = null;
   try {
     const existing = await ghGet(filePath);
@@ -816,10 +1096,8 @@ async function uploadIndexHtml(app) {
 }
 
 // ═══════════════════════════════════════════
-// SCAFFOLD — Datenstruktur anlegen
+// SCAFFOLD
 // ═══════════════════════════════════════════
-
-// Baut eine leere, aber vollständig typisierte Grundstruktur für eine neue App
 function buildScaffoldData(app) {
   return {
     _meta: {
@@ -836,15 +1114,12 @@ function buildScaffoldData(app) {
   };
 }
 
-// Legt data/[app-path]/data.json auf GitHub an — erzeugt Ordner implizit
 async function scaffoldAppData(app) {
   const dataFilePath = `data/${app.path}/data.json`;
   let existing = null;
   try {
     existing = await ghGet(dataFilePath);
-  } catch(e) {
-    // Netzwerkfehler beim Prüfen — trotzdem PUT versuchen
-  }
+  } catch(e) {}
   if (existing) {
     toast(`📂 data/${app.path}/ existiert bereits — übersprungen`, '');
     return { skipped: true };
@@ -871,7 +1146,6 @@ function loadCachedApps() {
 async function loadApps() {
   const repo = getRepo();
   if (!repo) { toast('Repo nicht konfiguriert', 'err'); showSetup(); return; }
-  // Warnung wenn kein Token gesetzt (privates Repo scheitert ohne Token)
   if (!getToken()) {
     setSyncStatus('Kein Token — nur öffentliche Repos');
   } else {
@@ -888,21 +1162,20 @@ async function loadApps() {
     localStorage.setItem(STORAGE_KEY_APPS, JSON.stringify(apps));
     renderApps();
     updateStatusBar();
-    setSyncStatus('Synchronisiert ' + new Date().toLocaleTimeString('de-CH'));
+    setSyncStatus('☁️ Synchronisiert ' + new Date().toLocaleTimeString('de-CH'));
     document.getElementById('list-sub').textContent = apps.length + ' Apps geladen';
   } catch(e) {
-    setSyncStatus('Fehler beim Laden');
+    setSyncStatus('⚠️ Fehler beim Laden');
     const isNoToken = !getToken();
     const msg = isNoToken ? e.message + ' — Token setzen!' : e.message;
     toast('Fehler: ' + msg, 'err');
     document.getElementById('list-sub').textContent = 'Fehler beim Laden';
-    // Zeige Setup wenn Token fehlt und Fehler aufgetreten
     if (isNoToken) setTimeout(showSetup, 600);
   }
 }
 
 function setSyncStatus(msg) {
-  const el = document.getElementById('sb-sync-lbl');
+  const el   = document.getElementById('sb-sync-lbl');
   const item = document.getElementById('sb-sync-item');
   el.textContent = msg;
   item.style.display = 'flex';
@@ -912,7 +1185,7 @@ function setSyncStatus(msg) {
 // RENDER APPS
 // ═══════════════════════════════════════════
 function renderApps() {
-  const list = document.getElementById('app-list');
+  const list  = document.getElementById('app-list');
   const empty = document.getElementById('empty-state');
   list.querySelectorAll('.app-row').forEach(r => r.remove());
   if (apps.length === 0) {
@@ -933,7 +1206,7 @@ function buildRow(app, idx) {
   div.draggable = true;
 
   const repo = getRepo();
-  const url = repo ? `https://${repo.split('/')[0]}.github.io/${repo.split('/')[1]}/${app.path}/index.html` : '#';
+  const url  = repo ? `https://${repo.split('/')[0]}.github.io/${repo.split('/')[1]}/${app.path}/index.html` : '#';
   const scaffoldBadge = app.scaffolded
     ? `<span class="status-badge badge-scaffold" title="Datenstruktur angelegt">📂 Data</span>`
     : '';
@@ -942,12 +1215,12 @@ function buildRow(app, idx) {
     <span class="drag-handle" title="Ziehen zum Sortieren">⠿</span>
     <div class="app-icon">${app.icon || '📦'}</div>
     <div class="app-info">
-      <div class="app-name">${esc(app.name)}</div>
+      <div class="app-name">${escHtml(app.name)}</div>
       <div class="app-meta">
         <span class="status-badge ${app.active === false ? 'badge-hidden' : 'badge-active'}">${app.active === false ? 'Versteckt' : 'Aktiv'}</span>
         ${scaffoldBadge}
-        <span class="app-path">${esc(app.path)}/index.html</span>
-        ${app.desc ? `<span>${esc(app.desc)}</span>` : ''}
+        <span class="app-path">${escHtml(app.path)}/index.html</span>
+        ${app.desc ? `<span>${escHtml(app.desc)}</span>` : ''}
       </div>
     </div>
     <div class="app-actions">
@@ -976,10 +1249,6 @@ function buildRow(app, idx) {
   });
 
   return div;
-}
-
-function esc(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ═══════════════════════════════════════════
@@ -1028,7 +1297,6 @@ function openAddModal() {
   document.getElementById('app-delete-btn').style.display = 'none';
   document.getElementById('emoji-preview').textContent = '📦';
   document.getElementById('emoji-custom').value = '';
-  // Scaffold-Option: bei neuer App immer einblenden und aktivieren
   document.getElementById('scaffold-section').style.display = 'block';
   document.getElementById('scaffold-enabled').checked = true;
   resetUpload();
@@ -1049,7 +1317,6 @@ function openEditModal(idx) {
   document.getElementById('emoji-preview').textContent = selectedEmoji;
   document.getElementById('emoji-custom').value = '';
   document.getElementById('app-delete-btn').style.display = 'block';
-  // Scaffold+Upload: beim Bearbeiten ausblenden
   document.getElementById('scaffold-section').style.display = 'none';
   resetUpload();
   renderEmojiGrid();
@@ -1061,19 +1328,18 @@ function sanitizePath(input) {
 }
 
 async function saveApp() {
-  const name = document.getElementById('app-name').value.trim();
-  const desc = document.getElementById('app-desc').value.trim();
-  const path = document.getElementById('app-path').value.trim();
-  const active = document.getElementById('app-active').checked;
+  const name      = document.getElementById('app-name').value.trim();
+  const desc      = document.getElementById('app-desc').value.trim();
+  const path      = document.getElementById('app-path').value.trim();
+  const active    = document.getElementById('app-active').checked;
   const doScaffold = editingId === null && document.getElementById('scaffold-enabled').checked;
 
   if (!name) { toast('Bitte einen Namen eingeben', 'err'); return; }
   if (!path) { toast('Bitte einen Pfad eingeben', 'err'); return; }
-
   if (isReadOnly()) { toast('Read-only — Token setzen um zu speichern', 'err'); return; }
 
   const app = {
-    id: editingId !== null ? apps[editingId].id : Date.now().toString(36),
+    id: editingId !== null ? apps[editingId].id : uid(),
     icon: selectedEmoji,
     name,
     desc,
@@ -1082,11 +1348,9 @@ async function saveApp() {
     updatedAt: new Date().toISOString()
   };
 
-  // Scaffold-Flag setzen wenn Datenstruktur angelegt wird
   if (doScaffold) {
     app.scaffolded = true;
   } else if (editingId !== null) {
-    // Bestehenden scaffold-Status beibehalten
     app.scaffolded = apps[editingId].scaffolded || false;
   }
 
@@ -1101,8 +1365,6 @@ async function saveApp() {
   updateStatusBar();
 
   const commitMsg = editingId !== null ? `App "${name}" bearbeitet` : `App "${name}" hinzugefügt`;
-
-  // Zuerst apps.json speichern, dann Scaffold anlegen (parallel wäre riskant bei Erstanlage)
   await saveAppsToGitHub(commitMsg);
 
   if (doScaffold) {
@@ -1115,10 +1377,9 @@ async function saveApp() {
       }
     } catch(e) {
       toast('Scaffold Fehler: ' + e.message, 'err');
-      setSyncStatus('Scaffold fehlgeschlagen');
+      setSyncStatus('⚠️ Scaffold fehlgeschlagen');
     }
   }
-  // index.html hochladen wenn ausgewählt
   if (uploadFileData) {
     setSyncStatus('Lade index.html hoch…');
     try {
@@ -1129,7 +1390,7 @@ async function saveApp() {
       }
     } catch(e) {
       toast('Upload Fehler: ' + e.message, 'err');
-      setSyncStatus('Upload fehlgeschlagen');
+      setSyncStatus('⚠️ Upload fehlgeschlagen');
     }
     resetUpload();
   }
@@ -1138,7 +1399,7 @@ async function saveApp() {
 async function deleteApp() {
   if (editingId === null) return;
   const app = apps[editingId];
-  const ok = await confirm(`App "${app.name}" wirklich löschen?`, '🗑️');
+  const ok  = await confirm(`App "${app.name}" wirklich löschen?`, '🗑️');
   if (!ok) return;
   if (isReadOnly()) { toast('Read-only — Token setzen um zu löschen', 'err'); return; }
   apps.splice(editingId, 1);
@@ -1153,10 +1414,10 @@ async function saveAppsToGitHub(message) {
   try {
     await writeApps(apps, message);
     localStorage.setItem(STORAGE_KEY_APPS, JSON.stringify(apps));
-    setSyncStatus('Gespeichert ' + new Date().toLocaleTimeString('de-CH'));
+    setSyncStatus('☁️ Gespeichert ' + new Date().toLocaleTimeString('de-CH'));
     toast('Gespeichert ✓', 'ok');
   } catch(e) {
-    setSyncStatus('Fehler beim Speichern');
+    setSyncStatus('⚠️ Fehler beim Speichern');
     toast('Fehler: ' + e.message, 'err');
   }
 }
@@ -1164,7 +1425,7 @@ async function saveAppsToGitHub(message) {
 // ═══════════════════════════════════════════
 // MODAL HELPERS
 // ═══════════════════════════════════════════
-function openModal(id) { document.getElementById(id).classList.add('open'); }
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 // ═══════════════════════════════════════════
@@ -1184,30 +1445,17 @@ function confirm(msg, icon) {
 }
 
 // ═══════════════════════════════════════════
-// PIN — OVERLAY (APP ACCESS)
+// PIN — OVERLAY
 // ═══════════════════════════════════════════
-// ─── AUTH HELPERS ────────────────────────────────────────────
-// portal_auth in localStorage → gültig solange Browser-Daten bestehen
-// Gleiche Origin hschachtler.github.io → alle Sub-Apps sehen denselben Wert
-
-function isAuthValid() {
-  return localStorage.getItem('portal_auth') === '1';
-}
-
-function setAuth() {
-  localStorage.setItem('portal_auth', '1');
-}
-
-function clearAuth() {
-  localStorage.removeItem('portal_auth');
-}
+function isAuthValid() { return localStorage.getItem('portal_auth') === '1'; }
+function setAuth()     { localStorage.setItem('portal_auth', '1'); }
+function clearAuth()   { localStorage.removeItem('portal_auth'); }
 
 function checkPinOnLoad() {
   const hash = localStorage.getItem('portal_pin_hash');
   if (!hash) {
-    // Kein PIN gesetzt → direkt authentifiziert
     setAuth();
-    const params = new URLSearchParams(window.location.search);
+    const params  = new URLSearchParams(window.location.search);
     const returnTo = params.get('returnTo');
     if (returnTo) { window.location.replace(decodeURIComponent(returnTo)); return; }
     document.getElementById('pin-setup-hint').style.display = 'block';
@@ -1215,9 +1463,8 @@ function checkPinOnLoad() {
     document.getElementById('pin-overlay').classList.add('hidden');
     return;
   }
-  // Bereits eingeloggt und noch gültig?
   if (isAuthValid()) {
-    const params = new URLSearchParams(window.location.search);
+    const params  = new URLSearchParams(window.location.search);
     const returnTo = params.get('returnTo');
     if (returnTo) { window.location.replace(decodeURIComponent(returnTo)); return; }
     document.getElementById('pin-overlay').classList.add('hidden');
@@ -1259,7 +1506,7 @@ async function checkPin() {
   const entered = await sha256(pinBuffer);
   if (entered === hash) {
     setAuth();
-    const params = new URLSearchParams(window.location.search);
+    const params  = new URLSearchParams(window.location.search);
     const returnTo = params.get('returnTo');
     if (returnTo) { window.location.replace(decodeURIComponent(returnTo)); return; }
     document.getElementById('pin-overlay').classList.add('hidden');
@@ -1305,7 +1552,7 @@ function pmKey(k) {
   }
 }
 
-function pmDel() { pmBuffer1 = pmBuffer1.slice(0,-1); updatePinDots(pmBuffer1,'pmd1-'); }
+function pmDel()  { pmBuffer1 = pmBuffer1.slice(0,-1); updatePinDots(pmBuffer1,'pmd1-'); }
 
 function pmKey2(k) {
   if (pmBuffer2.length >= 6) return;
@@ -1332,7 +1579,6 @@ async function confirmPinChange() {
 
 function clearPin() {
   localStorage.removeItem('portal_pin_hash');
-  // Auth bleibt aktiv — kein PIN mehr nötig, direkt eingeloggt
   setAuth();
   closeModal('pin-modal');
   toast('PIN gelöscht — kein Schutz aktiv', '');
@@ -1351,7 +1597,7 @@ function toast(msg, type) {
 }
 
 // ═══════════════════════════════════════════
-// KEYBOARD SUPPORT
+// KEYBOARD
 // ═══════════════════════════════════════════
 document.addEventListener('keydown', e => {
   if (!document.getElementById('pin-overlay').classList.contains('hidden')) {
@@ -1390,4 +1636,4 @@ init();
 </script>
 </body>
 </html>
-<!-- END OF FILE — Version 1.3.3 -->
+<!-- END OF FILE — Version 1.5.0 -->
