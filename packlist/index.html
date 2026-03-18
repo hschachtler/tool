@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 1.4.6 -->
+<!-- Version 1.4.7 -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -293,7 +293,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 #pin-overlay{display:none!important}
 </style>
 </head>
-<body data-version="1.4.6">
+<body data-version="1.4.7">
 
 <!-- ═══ AUTH OVERLAY ═══ -->
 <div id="auth-overlay" class="hidden">
@@ -392,9 +392,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 
 <!-- ═══ VIEW: PACKLISTE ═══ -->
 <div id="view-packlist" class="view">
-  <div id="print-hdr">
-    <h2 id="print-title">Packliste</h2>
-  </div>
+
   <div class="pack-toolbar">
     <button class="tbtn bgh" onclick="newPL()" title="Neue leere Packliste">➕ Neu</button>
     <button class="tbtn bgh" onclick="openLoadPLModal()">📂 Laden</button>
@@ -1007,7 +1005,7 @@ function renderPLView(){
   const items=S.items; // alle Gegenstände, projektunabhängig
 
   // Titel & Status im Header
-  document.getElementById('print-title').textContent=curPL.name;
+
   document.getElementById('pl-save-status').textContent=
     curPL.id ? ('✓ Gespeichert'+(curPL.date?' '+curPL.date:'')) : '● Nicht gespeichert';
   document.getElementById('pl-save-status').style.color=curPL.id?'var(--g1)':'var(--tx3)';
@@ -1982,4 +1980,4 @@ init();
 
 </body>
 </html>
-<!-- END OF FILE — Version 1.4.6 -->
+<!-- END OF FILE — Version 1.4.7 -->
