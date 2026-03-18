@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 1.4.4 -->
+<!-- Version 1.4.5 -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -293,7 +293,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 #pin-overlay{display:none!important}
 </style>
 </head>
-<body data-version="1.4.4">
+<body data-version="1.4.5">
 
 <!-- ═══ AUTH OVERLAY ═══ -->
 <div id="auth-overlay" class="hidden">
@@ -393,10 +393,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 <!-- ═══ VIEW: PACKLISTE ═══ -->
 <div id="view-packlist" class="view">
   <div id="print-hdr">
-    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
-      <h2 id="print-title">Packliste</h2>
-      <span id="pl-save-status" style="font-size:.6rem;font-weight:600;color:var(--tx3);white-space:nowrap">Nicht gespeichert</span>
-    </div>
+    <h2 id="print-title">Packliste</h2>
     <p id="print-sub"></p>
   </div>
   <div class="pack-toolbar">
@@ -405,6 +402,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
     <button class="tbtn bg" onclick="savePL(false)">💾 Speichern</button>
     <button class="tbtn bg" onclick="savePL(true)" title="Als neue Kopie speichern" style="background:linear-gradient(135deg,#2a7060,#1a6080)">📋 Kopie</button>
     <button class="tbtn bo" onclick="printPacklist()">🖨️ Drucken</button>
+    <span id="pl-save-status" style="margin-left:auto;font-size:.6rem;font-weight:600;color:var(--tx3);white-space:nowrap;flex-shrink:0">● Nicht gespeichert</span>
   </div>
   <div id="pl-strip">
     <span id="pl-strip-lbl">Listen:</span>
@@ -1985,4 +1983,4 @@ init();
 
 </body>
 </html>
-<!-- END OF FILE — Version 1.4.4 -->
+<!-- END OF FILE — Version 1.4.5 -->
