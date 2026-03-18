@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 1.4.3 -->
+<!-- Version 1.4.4 -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -121,9 +121,6 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 /* ═══ PACKLISTE TABLE VIEW ═══ */
 #view-packlist.active{display:flex;flex-direction:column}
 .pack-toolbar{background:var(--surface);border-bottom:1px solid var(--bd);padding:7px 12px;display:flex;align-items:center;gap:7px;flex-shrink:0}
-.pack-tinfo{flex:1;min-width:0}
-.pack-tname{font-family:'Playfair Display',serif;font-size:.82rem;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pack-tsub{font-size:.58rem;color:var(--tx3);margin-top:1px}
 .pack-stat-bar{background:var(--s2);border-bottom:1px solid var(--bd);padding:5px 12px;display:flex;gap:10px;flex-shrink:0;align-items:center}
 /* PL STRIP */
 #pl-strip{background:var(--surface);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 12px;gap:5px;height:36px;flex-shrink:0;overflow-x:auto}
@@ -296,7 +293,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 #pin-overlay{display:none!important}
 </style>
 </head>
-<body data-version="1.4.3">
+<body data-version="1.4.4">
 
 <!-- ═══ AUTH OVERLAY ═══ -->
 <div id="auth-overlay" class="hidden">
@@ -396,14 +393,13 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 <!-- ═══ VIEW: PACKLISTE ═══ -->
 <div id="view-packlist" class="view">
   <div id="print-hdr">
-    <h2 id="print-title">Packliste</h2>
+    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+      <h2 id="print-title">Packliste</h2>
+      <span id="pl-save-status" style="font-size:.6rem;font-weight:600;color:var(--tx3);white-space:nowrap">Nicht gespeichert</span>
+    </div>
     <p id="print-sub"></p>
   </div>
   <div class="pack-toolbar">
-    <div class="pack-tinfo">
-      <div class="pack-tname" id="pl-name">Neue Packliste</div>
-      <div class="pack-tsub" id="pl-sub">Nicht gespeichert</div>
-    </div>
     <button class="tbtn bgh" onclick="newPL()" title="Neue leere Packliste">➕ Neu</button>
     <button class="tbtn bgh" onclick="openLoadPLModal()">📂 Laden</button>
     <button class="tbtn bg" onclick="savePL(false)">💾 Speichern</button>
@@ -1013,14 +1009,13 @@ function renderPLView(){
   const orte=projOrts();
   const items=S.items; // alle Gegenstände, projektunabhängig
 
-  // Toolbar
-  document.getElementById('pl-name').textContent=curPL.name;
-  document.getElementById('pl-sub').textContent=
-    (proj?proj.icon+' '+proj.name:'Kein Projekt')+
-    (curPL.id?' · Gespeichert '+(curPL.date||''):' · Nicht gespeichert');
-
-  // Print header
+  // Titel & Status im Header
   document.getElementById('print-title').textContent=curPL.name;
+  document.getElementById('pl-save-status').textContent=
+    curPL.id ? ('✓ Gespeichert'+(curPL.date?' '+curPL.date:'')) : '● Nicht gespeichert';
+  document.getElementById('pl-save-status').style.color=curPL.id?'var(--g1)':'var(--tx3)';
+
+  // Print header sub
   document.getElementById('print-sub').textContent=(proj?proj.icon+' '+proj.name:'')+' · '+(proj?.year||'')+(curPL.date?' · '+curPL.date:'');
 
   // Stats
@@ -1990,4 +1985,4 @@ init();
 
 </body>
 </html>
-<!-- END OF FILE — Version 1.4.3 -->
+<!-- END OF FILE — Version 1.4.4 -->
