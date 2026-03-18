@@ -1207,6 +1207,9 @@ function checkPinOnLoad() {
   if (!hash) {
     // Kein PIN gesetzt → direkt authentifiziert
     setAuth();
+    const params = new URLSearchParams(window.location.search);
+    const returnTo = params.get('returnTo');
+    if (returnTo) { window.location.replace(decodeURIComponent(returnTo)); return; }
     document.getElementById('pin-setup-hint').style.display = 'block';
     document.getElementById('pin-sub').style.display = 'none';
     document.getElementById('pin-overlay').classList.add('hidden');
@@ -1214,6 +1217,9 @@ function checkPinOnLoad() {
   }
   // Bereits eingeloggt und noch gültig?
   if (isAuthValid()) {
+    const params = new URLSearchParams(window.location.search);
+    const returnTo = params.get('returnTo');
+    if (returnTo) { window.location.replace(decodeURIComponent(returnTo)); return; }
     document.getElementById('pin-overlay').classList.add('hidden');
     return;
   }
@@ -1253,6 +1259,9 @@ async function checkPin() {
   const entered = await sha256(pinBuffer);
   if (entered === hash) {
     setAuth();
+    const params = new URLSearchParams(window.location.search);
+    const returnTo = params.get('returnTo');
+    if (returnTo) { window.location.replace(decodeURIComponent(returnTo)); return; }
     document.getElementById('pin-overlay').classList.add('hidden');
   } else {
     pinLocked = true;
