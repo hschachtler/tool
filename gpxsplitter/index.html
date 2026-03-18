@@ -92,6 +92,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 
 /* NUMBER INPUT */
 .num-wrap{display:flex;align-items:center;background:var(--s2);border:1.5px solid var(--bd2);border-radius:10px;overflow:hidden;transition:border-color .15s}
+.method-btn{flex:1;padding:9px 8px;border:1.5px solid var(--bd2);border-radius:10px;background:var(--s2);font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;color:var(--tx2);cursor:pointer;transition:all .15s;text-align:center;-webkit-appearance:none}
+.method-btn.active{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;border-color:transparent;font-weight:700}
 .num-wrap:focus-within{border-color:var(--g1);background:var(--surface)}
 .num-btn{width:40px;height:42px;background:none;border:none;font-size:1.2rem;color:var(--tx2);cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-appearance:none;transition:color .15s;flex-shrink:0;min-height:44px}
 .num-btn:active{color:var(--g1)}
@@ -258,6 +260,20 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
               <button class="num-btn" id="inc-btn">+</button>
             </div>
             <div id="km-per-part" style="font-size:.72rem;color:var(--tx2);white-space:nowrap">— km / Teil</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Aufteilungsmethode -->
+        <div class="field-row">
+          <label class="field-label">✂︎ Aufteilungsmethode</label>
+          <div style="display:flex;gap:8px;margin-top:2px">
+            <button class="method-btn active" id="method-equal" onclick="setMethod('equal')">📏 Gleichmässig</button>
+            <button class="method-btn" id="method-terrain" onclick="setMethod('terrain')">🏘️ Nach Beschaffenheit</button>
+          </div>
+          <div id="method-terrain-hint" style="display:none;font-size:.68rem;color:var(--tx3);margin-top:6px;line-height:1.5">
+            Schnitte werden bis ±10% der Segmentlänge zur nächsten Ortschaft verschoben.
           </div>
         </div>
 
@@ -443,6 +459,16 @@ function updatePreview() {
   namePreview.classList.add('visible');
 }
 
+// ─── AUFTEILUNGSMETHODE ──────────────────────────────────────────────────────
+let splitMethod = 'equal'; // 'equal' | 'terrain'
+
+function setMethod(m) {
+  splitMethod = m;
+  document.getElementById('method-equal').classList.toggle('active', m === 'equal');
+  document.getElementById('method-terrain').classList.toggle('active', m === 'terrain');
+  document.getElementById('method-terrain-hint').style.display = m === 'terrain' ? 'block' : 'none';
+}
+
 // ─── SPLIT ───────────────────────────────────────────────────────────────────
 async function doSplit() {
   hideError();
@@ -470,7 +496,68 @@ async function doSplit() {
   }
   splitIndices.push(allPoints.length - 1); // end
 
-  // ── 2. Build chunks ────────────────────────────────────────────────────────
+  // ── 2a. Terrain-Korrektur: Schneide zur nächsten Ortschaft verschieben ─────
+  if (splitMethod === 'terrain') {
+    progWrap.classList.add('visible');
+    progFill.style.width = '0%';
+    progLabel.textContent = 'Suche Ortschaften für Terrain-Aufteilung…';
+    progSub.textContent = '';
+
+    const toleranceFraction = 0.10; // ±10% der Segmentlänge
+
+    for (let part = 1; part < n; part++) {
+      const idealIdx = splitIndices[part];
+      const segLen = (rawDistances[splitIndices[part+1] ?? allPoints.length-1] - rawDistances[splitIndices[part-1]]) / 2;
+      const toleranceKm = segLen * toleranceFraction;
+
+      // Suchfenster: alle Punkte innerhalb ±toleranceKm um den idealen Schnitt
+      const windowPts = [];
+      for (let i = 1; i < allPoints.length - 1; i++) {
+        const distFromIdeal = Math.abs(rawDistances[i] - rawDistances[idealIdx]);
+        if (distFromIdeal <= toleranceKm) windowPts.push(i);
+      }
+
+      progFill.style.width = Math.round((part / (n-1)) * 40) + '%';
+      progSub.textContent = `Prüfe Schnitt ${part} von ${n-1}…`;
+
+      if (windowPts.length === 0) continue;
+
+      // Für jeden Punkt im Fenster: reverse geocode (gecacht) und prüfe ob es eine Ortschaft ist
+      let bestIdx = idealIdx;
+      let bestScore = -Infinity;
+
+      for (const idx of windowPts) {
+        const pt = allPoints[idx];
+        const lat = +pt.getAttribute('lat');
+        const lon = +pt.getAttribute('lon');
+        const key = lat.toFixed(3) + ',' + lon.toFixed(3);
+
+        let placeType = geocodePlaceCache[key];
+        if (placeType === undefined) {
+          await sleep(1100); // Nominatim Rate-Limit
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`,
+              { headers: { 'Accept-Language': 'de', 'User-Agent': 'BikePacking-GPX-Splitter/1.0' } }
+            );
+            const data = await res.json();
+            placeType = data?.addresstype || data?.type || '';
+            geocodePlaceCache[key] = placeType;
+          } catch { geocodePlaceCache[key] = ''; placeType = ''; }
+        }
+
+        // Score: Ortschaft = hoch, kein Ort = 0; näher am Idealschnitt = besser
+        const isPlace = ['city','town','village','hamlet','suburb','quarter','neighbourhood','municipality'].includes(placeType);
+        if (!isPlace) continue;
+        const proximity = 1 - (Math.abs(rawDistances[idx] - rawDistances[idealIdx]) / toleranceKm);
+        if (proximity > bestScore) { bestScore = proximity; bestIdx = idx; }
+      }
+
+      splitIndices[part] = bestIdx;
+    }
+  }
+
+
   const chunks = [];
   for (let i = 0; i < n; i++) {
     const from = splitIndices[i];
@@ -480,7 +567,7 @@ async function doSplit() {
 
   // ── 3. Geocode each chunk endpoint ────────────────────────────────────────
   progWrap.classList.add('visible');
-  progFill.style.width = '0%';
+  progFill.style.width = splitMethod === 'terrain' ? '40%' : '0%';
   progLabel.textContent = 'Suche Ortsnamen via OpenStreetMap…';
   progSub.textContent   = `0 von ${n} Teilen`;
 
@@ -489,7 +576,9 @@ async function doSplit() {
   const startCities = []; // startCities[i] = city name at start of chunk i
 
   for (let i = 0; i < n; i++) {
-    progFill.style.width = Math.round(((i+1)/n)*50) + '%';
+    const base = splitMethod === 'terrain' ? 40 : 0;
+    const range = splitMethod === 'terrain' ? 30 : 50;
+    progFill.style.width = Math.round(base + ((i+1)/n)*range) + '%';
     progSub.textContent  = `Geocodiere Teil ${i+1} von ${n}…`;
 
     const chunk = chunks[i];
@@ -527,7 +616,8 @@ async function doSplit() {
   resultsWrap.classList.add('visible');
 
   for (let i = 0; i < n; i++) {
-    progFill.style.width = Math.round(50 + ((i+1)/n)*50) + '%';
+    const base2 = splitMethod === 'terrain' ? 70 : 50;
+    progFill.style.width = Math.round(base2 + ((i+1)/n)*30) + '%';
     progSub.textContent  = `Erstelle Datei ${i+1} von ${n}…`;
 
     const chunk = chunks[i];
@@ -570,6 +660,7 @@ async function doSplit() {
 
 // ─── GEOCODE WITH RATE LIMIT ─────────────────────────────────────────────────
 const geocodeCache = {};
+const geocodePlaceCache = {}; // cache für place-type lookups (terrain mode)
 async function rateLimitedGeocode(lat, lon, idx) {
   const key = lat.toFixed(4) + ',' + lon.toFixed(4);
   if (geocodeCache[key]) return geocodeCache[key];
