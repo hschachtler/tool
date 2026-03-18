@@ -496,69 +496,7 @@ async function doSplit() {
   }
   splitIndices.push(allPoints.length - 1); // end
 
-  // ── 2a. Terrain-Korrektur: Schneide zur nächsten Ortschaft verschieben ─────
-  if (splitMethod === 'terrain') {
-    progWrap.classList.add('visible');
-    progFill.style.width = '0%';
-    progLabel.textContent = 'Suche Ortschaften für Terrain-Aufteilung…';
-    progSub.textContent = '';
 
-    const toleranceFraction = 0.10; // ±10% der Segmentlänge
-
-    for (let part = 1; part < n; part++) {
-      const idealIdx = splitIndices[part];
-      const segLen = (rawDistances[splitIndices[part+1] ?? allPoints.length-1] - rawDistances[splitIndices[part-1]]) / 2;
-      const toleranceKm = segLen * toleranceFraction;
-
-      // Suchfenster: alle Punkte innerhalb ±toleranceKm um den idealen Schnitt
-      const windowPts = [];
-      for (let i = 1; i < allPoints.length - 1; i++) {
-        const distFromIdeal = Math.abs(rawDistances[i] - rawDistances[idealIdx]);
-        if (distFromIdeal <= toleranceKm) windowPts.push(i);
-      }
-
-      progFill.style.width = Math.round((part / (n-1)) * 40) + '%';
-      progSub.textContent = `Prüfe Schnitt ${part} von ${n-1}…`;
-
-      if (windowPts.length === 0) continue;
-
-      // Für jeden Punkt im Fenster: reverse geocode (gecacht) und prüfe ob es eine Ortschaft ist
-      let bestIdx = idealIdx;
-      let bestScore = -Infinity;
-
-      for (const idx of windowPts) {
-        const pt = allPoints[idx];
-        const lat = +pt.getAttribute('lat');
-        const lon = +pt.getAttribute('lon');
-        const key = lat.toFixed(3) + ',' + lon.toFixed(3);
-
-        let placeType = geocodePlaceCache[key];
-        if (placeType === undefined) {
-          await sleep(1100); // Nominatim Rate-Limit
-          try {
-            const res = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`,
-              { headers: { 'Accept-Language': 'de', 'User-Agent': 'BikePacking-GPX-Splitter/1.0' } }
-            );
-            const data = await res.json();
-            placeType = data?.addresstype || data?.type || '';
-            geocodePlaceCache[key] = placeType;
-          } catch { geocodePlaceCache[key] = ''; placeType = ''; }
-        }
-
-        // Score: Ortschaft = hoch, kein Ort = 0; näher am Idealschnitt = besser
-        const isPlace = ['city','town','village','hamlet','suburb','quarter','neighbourhood','municipality'].includes(placeType);
-        if (!isPlace) continue;
-        const proximity = 1 - (Math.abs(rawDistances[idx] - rawDistances[idealIdx]) / toleranceKm);
-        if (proximity > bestScore) { bestScore = proximity; bestIdx = idx; }
-      }
-
-      splitIndices[part] = bestIdx;
-    }
-  }
-
-
-  const chunks = [];
   for (let i = 0; i < n; i++) {
     const from = splitIndices[i];
     const to   = splitIndices[i+1];
@@ -567,7 +505,7 @@ async function doSplit() {
 
   // ── 3. Geocode each chunk endpoint ────────────────────────────────────────
   progWrap.classList.add('visible');
-  progFill.style.width = splitMethod === 'terrain' ? '40%' : '0%';
+  progFill.style.width = '0%';
   progLabel.textContent = 'Suche Ortsnamen via OpenStreetMap…';
   progSub.textContent   = `0 von ${n} Teilen`;
 
@@ -576,8 +514,8 @@ async function doSplit() {
   const startCities = []; // startCities[i] = city name at start of chunk i
 
   for (let i = 0; i < n; i++) {
-    const base = splitMethod === 'terrain' ? 40 : 0;
-    const range = splitMethod === 'terrain' ? 30 : 50;
+    const base = 0;
+    const range = 50;
     progFill.style.width = Math.round(base + ((i+1)/n)*range) + '%';
     progSub.textContent  = `Geocodiere Teil ${i+1} von ${n}…`;
 
@@ -595,6 +533,76 @@ async function doSplit() {
 
     startCities.push(sc);
     endCities.push(ec);
+  }
+
+
+  // ── 3b. Terrain-Korrektur: Schnitte zu Ortsübergängen verschieben ──────────
+  // Keine extra Requests — nutzt nur bereits geocodierte Start/End-Punkte.
+  // Logik: Jeder Schnitt zwischen Segment i und i+1 liegt an splitIndices[i+1].
+  // Wir suchen im ±10%-Fenster den Punkt wo der Ortsname wechselt (Cache-only).
+  if (splitMethod === 'terrain') {
+    const toleranceFraction = 0.10;
+
+    for (let part = 1; part < n; part++) {
+      const idealIdx   = splitIndices[part];
+      const idealDist  = rawDistances[idealIdx];
+      const prevDist   = rawDistances[splitIndices[part - 1]];
+      const nextDist   = rawDistances[splitIndices[part + 1] !== undefined
+                           ? splitIndices[part + 1] : allPoints.length - 1];
+      const segLen     = (nextDist - prevDist) / 2;
+      const toleranceKm = Math.max(segLen * toleranceFraction, 2); // min 2 km
+
+      // Ortsnamen am idealen Schnitt — aus dem Cache (bereits geocodiert)
+      const idealPt  = allPoints[idealIdx];
+      const idealKey = (+idealPt.getAttribute('lat')).toFixed(4) + ',' +
+                       (+idealPt.getAttribute('lon')).toFixed(4);
+      const idealCity = geocodeCache[idealKey] || endCities[part - 1] || '';
+
+      // Fenstergrenzen
+      let winStart = idealIdx, winEnd = idealIdx;
+      while (winStart > 1 &&
+             (idealDist - rawDistances[winStart - 1]) < toleranceKm) winStart--;
+      while (winEnd < allPoints.length - 2 &&
+             (rawDistances[winEnd + 1] - idealDist) < toleranceKm) winEnd++;
+
+      // Kandidaten: gleichmässig 30 Punkte aus dem Fenster, nur Cache-Treffer
+      const windowSize = winEnd - winStart;
+      const step = Math.max(1, Math.floor(windowSize / 30));
+      let bestIdx   = idealIdx;
+      let bestScore = -1;
+
+      for (let i = winStart; i <= winEnd; i += step) {
+        const pt  = allPoints[i];
+        const key = (+pt.getAttribute('lat')).toFixed(4) + ',' +
+                    (+pt.getAttribute('lon')).toFixed(4);
+        const city = geocodeCache[key];
+        if (!city || city === idealCity) continue; // nur Ortsübergänge
+
+        // Nähe zum Idealschnitt als Score
+        const proximity = 1 - (Math.abs(rawDistances[i] - idealDist) / toleranceKm);
+        if (proximity > bestScore) { bestScore = proximity; bestIdx = i; }
+      }
+
+      // Wenn ein Übergang gefunden: Schnitt verschieben + Städtenamen updaten
+      if (bestScore >= 0) {
+        splitIndices[part] = bestIdx;
+        // Städtenamen der betroffenen Segmente neu setzen
+        const newPt   = allPoints[bestIdx];
+        const newKey  = (+newPt.getAttribute('lat')).toFixed(4) + ',' +
+                        (+newPt.getAttribute('lon')).toFixed(4);
+        const newCity = geocodeCache[newKey] || '';
+        if (newCity) {
+          endCities[part - 1]   = newCity;
+          startCities[part]     = newCity;
+        }
+      }
+    }
+
+    // Chunks nach Korrektur neu aufbauen
+    chunks.length = 0;
+    for (let i = 0; i < n; i++) {
+      chunks.push(allPoints.slice(splitIndices[i], splitIndices[i + 1] + 1));
+    }
   }
 
   // ── 4. Build GPX files ────────────────────────────────────────────────────
@@ -616,8 +624,8 @@ async function doSplit() {
   resultsWrap.classList.add('visible');
 
   for (let i = 0; i < n; i++) {
-    const base2 = splitMethod === 'terrain' ? 70 : 50;
-    progFill.style.width = Math.round(base2 + ((i+1)/n)*30) + '%';
+    
+    progFill.style.width = Math.round(50 + ((i+1)/n)*50) + '%';
     progSub.textContent  = `Erstelle Datei ${i+1} von ${n}…`;
 
     const chunk = chunks[i];
@@ -660,7 +668,6 @@ async function doSplit() {
 
 // ─── GEOCODE WITH RATE LIMIT ─────────────────────────────────────────────────
 const geocodeCache = {};
-const geocodePlaceCache = {}; // cache für place-type lookups (terrain mode)
 async function rateLimitedGeocode(lat, lon, idx) {
   const key = lat.toFixed(4) + ',' + lon.toFixed(4);
   if (geocodeCache[key]) return geocodeCache[key];
