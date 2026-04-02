@@ -1452,10 +1452,9 @@ function setAuth()     { localStorage.setItem('portal_auth', '1'); }
 function clearAuth()   { localStorage.removeItem('portal_auth'); }
 
 function checkPinOnLoad() {
-  // Redirect unangemeldete User zur Bikepacking-App
+  // Redirect unangemeldete User zur Bikepacking-App (nur wenn kein Token)
   const hasToken = !!localStorage.getItem('portal_gh_token');
-  const hasRepo  = !!localStorage.getItem('portal_repo');
-  if (!hasToken && !hasRepo) {
+  if (!hasToken) {
     window.location.replace('https://hschachtler.github.io/tool/bikepacking/index.html');
     return;
   }
