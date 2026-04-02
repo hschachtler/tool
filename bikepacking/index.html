@@ -984,6 +984,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);heigh
 const ADMIN_PASS = '880197'; // ⚠️ Demo only – replace with server-side auth for production
 const APP_VERSION = '2.0.2';
 const APP_BUILD   = '2026-04-02';
+
+// ── Auto-Update: bei veraltetem Cache neu laden ──────────────────
+(function checkCacheAndReload() {
+  const CACHE_KEY = 'bp_app_version';
+  const stored = localStorage.getItem(CACHE_KEY);
+  if (stored !== APP_VERSION) {
+    localStorage.setItem(CACHE_KEY, APP_VERSION);
+    if (stored !== null) {
+      // Neue Version — Cache busten und neu laden
+      const url = location.href.split('?')[0] + '?v=' + APP_VERSION;
+      location.replace(url);
+    }
+  }
+})();
 const FLAG_MAP = {
   CH:'🇨🇭',AT:'🇦🇹',DE:'🇩🇪',IT:'🇮🇹',FR:'🇫🇷',ES:'🇪🇸',
   SI:'🇸🇮',HR:'🇭🇷',RS:'🇷🇸',BA:'🇧🇦',HU:'🇭🇺',SK:'🇸🇰',
