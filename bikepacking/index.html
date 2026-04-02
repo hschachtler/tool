@@ -4655,9 +4655,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 // Gleiche Origin hschachtler.github.io → alle Sub-Apps sehen denselben Wert.
 
 function checkAuth() {
-  if (localStorage.getItem('portal_auth') !== '1') {
-    window.location.replace('../index.html');
-  }
+  // Auth-check entfernt: öffentlicher Zugriff erlaubt
 }
 function goToPortal() { window.location.replace('../index.html'); }
 
