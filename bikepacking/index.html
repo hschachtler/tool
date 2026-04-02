@@ -3,6 +3,9 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -979,7 +982,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);heigh
 // CONSTANTS & STATE
 // ═══════════════════════════════════════════════════════════
 const ADMIN_PASS = '880197'; // ⚠️ Demo only – replace with server-side auth for production
-const APP_VERSION = '2.0.1';
+const APP_VERSION = '2.0.2';
 const APP_BUILD   = '2026-04-02';
 const FLAG_MAP = {
   CH:'🇨🇭',AT:'🇦🇹',DE:'🇩🇪',IT:'🇮🇹',FR:'🇫🇷',ES:'🇪🇸',
@@ -1287,7 +1290,7 @@ async function readGithubFile(path) {
 }
 
 async function loadToursFromGithub() {
-  if (!ghConfig.repo) return; // no repo configured at all
+  if (!ghConfig.repo) ghConfig.repo = DEFAULT_REPO;
   const text = await readGithubFile('bikepacking/tours.json');
   if (text) {
     try { tours = JSON.parse(text); } catch(e) { tours = []; }
