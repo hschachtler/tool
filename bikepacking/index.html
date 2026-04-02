@@ -362,7 +362,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);heigh
 
 <!-- ══════ MAP VIEW ══════ -->
 <div id="view-map">
-  <div id="gpsbar">
+  <div id="gpsbar" onclick="locateMe()" style="cursor:pointer">
     <div class="gpssec">
       <div class="gpsico" style="background:var(--acc)">🚴</div>
       <div class="gpstxt">
@@ -982,7 +982,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);heigh
 // CONSTANTS & STATE
 // ═══════════════════════════════════════════════════════════
 const ADMIN_PASS = '880197'; // ⚠️ Demo only – replace with server-side auth for production
-const APP_VERSION = '2.0.3';
+const APP_VERSION = '2.0.4';
 const APP_BUILD   = '2026-04-02';
 
 // ── Auto-Update + localStorage Migration ────────────────────────
