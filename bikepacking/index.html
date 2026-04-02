@@ -4313,7 +4313,7 @@ async function uploadPhoto() {
 
 async function savePhotosToGithub() {
   if (!ghConfig.repo || !ghConfig.token) return;
-  const path = activeTourId ? `tours/${activeTourId}/photos.json` : 'photos.json';
+  const path = activeTourId ? `bikepacking/${activeTourId}/photos.json` : 'bikepacking/photos.json';
   const pf = await getGithubFile(path);
   await putGithubFile(path, JSON.stringify(photos, null, 2), 'Update photos', pf?.sha);
 }
@@ -4322,7 +4322,7 @@ async function loadPhotosFromGithub() {
   if (!ghConfig.repo) return;
   try {
     const base = `https://raw.githubusercontent.com/${ghConfig.repo}/${ghConfig.branch||'main'}`;
-    const path = activeTourId ? `tours/${activeTourId}/photos.json` : 'photos.json';
+    const path = activeTourId ? `bikepacking/${activeTourId}/photos.json` : 'bikepacking/photos.json';
     // Use raw URL (public, fast, no token) — add cache-bust
     let r = await fetch(`${base}/${path}?t=${Date.now()}`);
     // Fallback to root for legacy data
