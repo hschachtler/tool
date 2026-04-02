@@ -1054,7 +1054,7 @@ function loadLocalState() {
     // Merge: saved values override defaults, but never lose the default repo
     ghConfig = {
       repo:   saved.repo   || DEFAULT_REPO,
-      token:  saved.token  || '',
+      token:  saved.token  || localStorage.getItem('portal_gh_token') || '',
       branch: saved.branch || DEFAULT_BRANCH
     };
   } catch(e) { ghConfig = {repo: DEFAULT_REPO, token:'', branch: DEFAULT_BRANCH}; }
