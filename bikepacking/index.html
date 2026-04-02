@@ -1241,7 +1241,7 @@ async function putGithubFile(path, content, message, sha) {
 // ── Public read via raw.githubusercontent.com (no token needed) ──
 async function fetchPublicGithubFile(path, _retry) {
   if (_retry === undefined) _retry = 0;
-  if (!ghConfig.repo) return null;
+  if (!ghConfig.repo) ghConfig.repo = DEFAULT_REPO;
   const branch = ghConfig.branch || 'main';
   const url = `https://raw.githubusercontent.com/${ghConfig.repo}/${branch}/${path}?t=${Date.now()}`;
   try {
@@ -2413,7 +2413,7 @@ async function importExtractedPoisWithOsm() {
     showToast('⚠️ Bitte zuerst eine Tour anlegen (Schritt 1)', 'error');
     return;
   }
-  const good = extractedPois.filter(p => poiQuality(p).ok && !p._osmEnriched);
+  const good = extractedPois.filter(p => poiQuality(p).ok);
   if (!good.length) { showToast('❌ Keine qualitativ ausreichenden POIs gefunden', 'error'); return; }
 
   // Show progress UI
@@ -2501,7 +2501,7 @@ async function importExtractedPois() {
     showToast('⚠️ Bitte zuerst eine Tour anlegen (Schritt 1)', 'error');
     return;
   }
-  const good = extractedPois.filter(p => poiQuality(p).ok && !p._osmEnriched);
+  const good = extractedPois.filter(p => poiQuality(p).ok);
   if (!good.length) { showToast('❌ Keine qualitativ ausreichenden POIs gefunden', 'error'); return; }
   tourPois = [...tourPois, ...good];
   extractedPois = [];
@@ -4393,7 +4393,7 @@ function openOsmEnrichModal() {
   const info = document.getElementById('osm-enrich-info');
   const allPois = getAllPois();
   const withCoords = allPois.filter(p => p.lat && p.lon);
-  const alreadyFull = withCoords.filter(p => (p.addr && p.p && p.hours) || p._osmEnriched).length;
+  const alreadyFull = withCoords.filter(p => p.addr && p.p && p.hours).length;
   info.innerHTML = `📍 <b>${withCoords.length}</b> POIs mit Koordinaten · <b>${alreadyFull}</b> bereits vollständig · <b>${withCoords.length - alreadyFull}</b> könnten ergänzt werden`;
   document.getElementById('osm-enrich-progress').style.display = 'none';
   document.getElementById('osm-enrich-result').style.display = 'none';
