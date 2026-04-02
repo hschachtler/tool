@@ -982,17 +982,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);heigh
 // CONSTANTS & STATE
 // ═══════════════════════════════════════════════════════════
 const ADMIN_PASS = '880197'; // ⚠️ Demo only – replace with server-side auth for production
-const APP_VERSION = '2.0.2';
+const APP_VERSION = '2.0.3';
 const APP_BUILD   = '2026-04-02';
 
-// ── Auto-Update: bei veraltetem Cache neu laden ──────────────────
+// ── Auto-Update + localStorage Migration ────────────────────────
 (function checkCacheAndReload() {
   const CACHE_KEY = 'bp_app_version';
   const stored = localStorage.getItem(CACHE_KEY);
   if (stored !== APP_VERSION) {
+    // Bereinige potenziell korrupten bp_gh_config (falsches Repo-Format)
+    try {
+      const cfg = JSON.parse(localStorage.getItem('bp_gh_config') || '{}');
+      if (cfg.repo && (cfg.repo.includes('.github.io') || !cfg.repo.includes('/'))) {
+        localStorage.removeItem('bp_gh_config');
+      }
+    } catch(e) { localStorage.removeItem('bp_gh_config'); }
     localStorage.setItem(CACHE_KEY, APP_VERSION);
     if (stored !== null) {
-      // Neue Version — Cache busten und neu laden
       const url = location.href.split('?')[0] + '?v=' + APP_VERSION;
       location.replace(url);
     }
