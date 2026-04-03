@@ -301,7 +301,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);heigh
 .leaflet-popup-tip{background:var(--surface)!important}
 .leaflet-popup-content{margin:9px 13px!important;font-size:.76rem!important;line-height:1.5!important;color:var(--tx)!important}
 
-/* === Public/Admin Visibility v2.1.0 === */
+/* === Public/Admin Visibility v2.1.1 === */
 body:not(.is-admin) #topbar-wizard-btn,
 body:not(.is-admin) #topbar-osm-btn,
 body:not(.is-admin) #topbar-portal-btn,
@@ -329,7 +329,7 @@ body:not(.is-admin) #map-bottom-nav {
     <button class="topbar-btn topbar-btn-weather" onclick="openWeather()">🌤️</button>
     <button class="topbar-btn topbar-btn-map" onclick="showView('map')">🗺️ Karte</button>
     <button class="topbar-btn" id="theme-btn-bp" onclick="toggleThemeBp()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx2)">🌙</button>
-    <button class="topbar-btn" onclick="goToPortal()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx2)" title="Zurück zum Portal">⌂</button>
+    <button id="topbar-portal-btn" class="topbar-btn" onclick="goToPortal()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx2)" title="Zurück zum Portal">⌂</button>
     <button id="topbar-login-btn" class="topbar-btn topbar-btn-login" onclick="isAdmin?doLogout():openLoginModal()">
       <span id="topbar-login-icon">🔐</span><span id="topbar-login-label">Login</span>
     </button>
