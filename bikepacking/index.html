@@ -300,6 +300,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);heigh
 .leaflet-popup-content-wrapper{background:var(--surface)!important;border:1px solid var(--bd2)!important;border-radius:12px!important;box-shadow:0 6px 24px rgba(0,0,0,.12)!important;font-family:'DM Sans',sans-serif!important;color:var(--tx)!important}
 .leaflet-popup-tip{background:var(--surface)!important}
 .leaflet-popup-content{margin:9px 13px!important;font-size:.76rem!important;line-height:1.5!important;color:var(--tx)!important}
+
+/* === Public/Admin Visibility v2.1.0 === */
+body:not(.is-admin) #topbar-wizard-btn,
+body:not(.is-admin) #topbar-osm-btn,
+body:not(.is-admin) #topbar-portal-btn,
+body:not(.is-admin) #map-filter-bar,
+body:not(.is-admin) #map-bottom-nav {
+  display: none !important;
+}
 </style>
 </head>
 <body data-version="2.1.3">
@@ -308,7 +317,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);heigh
 <div id="auth-overlay" class="hidden">
   <div class="auth-logo-bp">🚴 Bike<span>Packing</span></div>
   <div class="auth-sub-bp">Bitte zuerst im Portal einloggen, um diese App zu nutzen.</div>
-  <button class="auth-btn-bp" onclick="goToPortal()">🔑 Zum Portal</button>
+  <button id="topbar-portal-btn" class="auth-btn-bp" onclick="goToPortal()">🔑 Zum Portal</button>
 </div>
 
 <!-- TOP BAR -->
@@ -954,8 +963,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);heigh
 // CONSTANTS & STATE
 // ═══════════════════════════════════════════════════════════
 const ADMIN_PASS = '880197'; // ⚠️ Demo only – replace with server-side auth for production
-const APP_VERSION = '2.0.5';
-const APP_BUILD   = '2026-04-02';
+const APP_VERSION = '2.1.0';
+const APP_BUILD   = '2026-04-03';
 
 // ── Auto-Update + localStorage Migration ────────────────────────
 (function checkCacheAndReload() {
@@ -3298,57 +3307,17 @@ function doLogout() {
 }
 
 function updateTopbarLoginBtn() {
-  document.getElementById('topbar-login-icon').textContent = isAdmin?'✅':'🔐';
-  document.getElementById('topbar-login-label').textContent = isAdmin?'Admin':'Login';
-  const adminBtn = document.getElementById('admin-btn');
-  if (adminBtn) { adminBtn.textContent = isAdmin?'🚴 Tracking':'🔐 Admin'; adminBtn.style.background=isAdmin?'linear-gradient(135deg,var(--g1),var(--g2))':''; adminBtn.style.color=isAdmin?'#fff':''; }
-  // Show/hide admin-only UI elements
-  const wizBtn = document.getElementById('topbar-wizard-btn');
-  if (wizBtn) wizBtn.style.display = isAdmin ? '' : 'none';
-  const osmBtn = document.getElementById('topbar-osm-btn');
-  if (osmBtn) osmBtn.style.display = isAdmin ? '' : 'none';
-  const gpsBtnPoi = document.getElementById('gps-btn-poi');
-  if (gpsBtnPoi) gpsBtnPoi.style.display = ''; // always visible
-  const ownPoiBtn = document.getElementById('own-poi-btn');
-  if (ownPoiBtn) ownPoiBtn.style.display = isAdmin ? 'flex' : 'none';
-  const gpsarea = document.getElementById('gpsarea');
-  if (gpsarea) gpsarea.style.display = ''; // always visible
-  const mapPoiListBtn = document.getElementById('map-poi-list-btn');
-  if (mapPoiListBtn) mapPoiListBtn.style.display = isAdmin ? '' : 'none';
-  // Admin-only map controls: GPS, Foto-Button, POI-Typ-Filter, Admin-Wrap
-  const gpsBtnMap = document.getElementById('gps-btn-map');
-  if (gpsBtnMap) gpsBtnMap.style.display = isAdmin ? '' : 'none';
-  const photoBtn = document.getElementById('photo-btn');
-  if (photoBtn) photoBtn.style.display = isAdmin ? '' : 'none';
-  const tmBtn = document.getElementById('tm-btn');
-  if (tmBtn) { tmBtn.style.display = isAdmin ? 'flex' : 'none'; }
-  const tmPanel = document.getElementById('tm-panel');
-  if (tmPanel && !isAdmin) { tmPanel.classList.remove('tm-open'); tmOpen = false; }
-  const mapFilterBar = document.getElementById('map-filter-bar');
-  if (mapFilterBar && !isAdmin) mapFilterBar.style.display = 'none';
-  const adminBtnWrap = document.getElementById('admin-btn-wrap');
-  if (adminBtnWrap) adminBtnWrap.style.display = isAdmin ? '' : 'none';
-  // Non-admin: hide own-poi filter tab
-  const fOwn = document.getElementById('f-own');
-  if (fOwn) fOwn.style.display = isAdmin ? '' : 'none';
-  // Topbar visibility: hide only when admin is on map view (full-screen map)
-  const topbarEl2 = document.getElementById('topbar');
-  topbarEl2.style.display = (currentView==='map' && isAdmin)?'none':'';
-  // Adjust map view top offset
-  if (currentView==='map') {
-    const mapViewEl2 = document.getElementById('view-map');
-    if (isAdmin) {
-      mapViewEl2.style.top = '0';
-    } else {
-      setTimeout(()=>{
-        const tbH = topbarEl2.offsetHeight || 48;
-        mapViewEl2.style.top = tbH+'px';
-      }, 0);
-    }
-    if (mapObj) setTimeout(()=>mapObj.invalidateSize(), 100);
+  const btn = document.getElementById('topbar-login-btn');
+  if (!btn) return;
+  if (isAdmin) {
+    btn.textContent = '\uD83D\uDD13 Logout';
+    btn.title = 'Admin abmelden';
+    document.body.classList.add('is-admin');
+  } else {
+    btn.textContent = '\uD83D\uDD10 Login';
+    btn.title = 'Admin Login';
+    document.body.classList.remove('is-admin');
   }
-  // Re-render POI list so admin buttons appear/disappear immediately
-  renderList();
 }
 
 // ═══════════════════════════════════════════════════════════
