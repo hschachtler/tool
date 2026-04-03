@@ -301,7 +301,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);heigh
 .leaflet-popup-tip{background:var(--surface)!important}
 .leaflet-popup-content{margin:9px 13px!important;font-size:.76rem!important;line-height:1.5!important;color:var(--tx)!important}
 
-/* === Public/Admin Visibility v2.1.1 === */
+/* === Public/Admin Visibility v2.1.2 === */
 body:not(.is-admin) #topbar-wizard-btn,
 body:not(.is-admin) #topbar-osm-btn,
 body:not(.is-admin) #topbar-portal-btn,
@@ -3309,14 +3309,23 @@ function doLogout() {
 function updateTopbarLoginBtn() {
   const btn = document.getElementById('topbar-login-btn');
   if (!btn) return;
+  const wizardBtn = document.getElementById('topbar-wizard-btn');
+  const osmBtn = document.getElementById('topbar-osm-btn');
+  const portalBtn = document.getElementById('topbar-portal-btn');
   if (isAdmin) {
     btn.textContent = '\uD83D\uDD13 Logout';
     btn.title = 'Admin abmelden';
     document.body.classList.add('is-admin');
+    if (wizardBtn) wizardBtn.style.removeProperty('display');
+    if (osmBtn) osmBtn.style.removeProperty('display');
+    if (portalBtn) portalBtn.style.removeProperty('display');
   } else {
     btn.textContent = '\uD83D\uDD10 Login';
     btn.title = 'Admin Login';
     document.body.classList.remove('is-admin');
+    if (wizardBtn) wizardBtn.style.display = 'none';
+    if (osmBtn) osmBtn.style.display = 'none';
+    if (portalBtn) portalBtn.style.display = 'none';
   }
 }
 
