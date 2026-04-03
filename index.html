@@ -1452,6 +1452,7 @@ function setAuth()     { localStorage.setItem('portal_auth', '1'); }
 function clearAuth()   { localStorage.removeItem('portal_auth'); }
 
 function checkPinOnLoad() {
+  if (new URLSearchParams(location.search).get('noredirect') === '1') return;
   // Redirect unangemeldete User zur Bikepacking-App (nur wenn kein Token)
   const hasToken = !!localStorage.getItem('portal_gh_token');
   if (!hasToken) {
