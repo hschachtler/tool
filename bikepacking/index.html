@@ -301,7 +301,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);heigh
 .leaflet-popup-tip{background:var(--surface)!important}
 .leaflet-popup-content{margin:9px 13px!important;font-size:.76rem!important;line-height:1.5!important;color:var(--tx)!important}
 
-/* === Public/Admin Visibility v2.1.3 === */
+/* === Public/Admin Visibility v2.1.4 === */
 body:not(.is-admin) #topbar-wizard-btn,
 body:not(.is-admin) #topbar-osm-btn,
 body:not(.is-admin) #topbar-portal-btn,
@@ -322,7 +322,7 @@ body:not(.is-admin) #map-bottom-nav {
 
 <!-- TOP BAR -->
 <div id="topbar">
-  <h1>🚴 <span id="app-title-text">BikePacking</span> <span id="version-badge" style="font-size:.52rem;font-weight:400;color:var(--tx3);font-family:'DM Sans',sans-serif;background:var(--bg);border:1px solid var(--bd2);border-radius:8px;padding:2px 6px;vertical-align:middle;letter-spacing:.03em">v2.1.3</span></h1>
+  <h1>🚴 <span id="app-title-text">BikePacking</span> <span id="version-badge" style="font-size:.52rem;font-weight:400;color:var(--tx3);font-family:'DM Sans',sans-serif;background:var(--bg);border:1px solid var(--bd2);border-radius:8px;padding:2px 6px;vertical-align:middle;letter-spacing:.03em">v2.1.4</span></h1>
   <div id="topbar-btns">
     <button id="topbar-wizard-btn" class="topbar-btn topbar-btn-wizard" onclick="openWizardAdmin()" style="display:none">🧭 Wizard</button>
     <button id="topbar-osm-btn" class="topbar-btn" onclick="openOsmEnrichModal()" style="display:none;background:linear-gradient(135deg,#1a7a4a,#1a5080);color:#fff;box-shadow:0 1px 5px rgba(0,0,0,.15)">🌍 OSM</button>
@@ -4630,7 +4630,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 function checkAuth() {
   // Auth-check entfernt: öffentlicher Zugriff erlaubt
 }
-function goToPortal() { window.open('../index.html', '_blank'); }
+function goToPortal() { window.open('../index.html?noredirect=1', '_blank'); }
 
 // ═══ THEME ═══
 function applyThemeBp() {
