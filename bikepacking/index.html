@@ -37,7 +37,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);heigh
 
 /* VIEWS */
 #view-poi{display:flex;flex-direction:column;flex:1;overflow:hidden}
-#view-map{position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;display:none;flex-direction:column}
+#view-map{position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;display:none;flex-direction:column;overflow:hidden}
 #view-map.active{display:flex}
 #view-poi.active{display:flex}
 #view-wizard{display:none;flex-direction:column;flex:1;overflow:hidden}
@@ -155,7 +155,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);heigh
 #photo-caption-input{width:100%;padding:10px 12px;border:1.5px solid var(--bd2);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.85rem;color:var(--tx);background:var(--s2);box-sizing:border-box;resize:none;outline:none}
 #gps-btn-map.busy{background:linear-gradient(135deg,#7a6a1a,#5a4a1a)}
 #gps-btn-map.ok{background:linear-gradient(135deg,#1a7a4a,#1a6a3a)}
-#map{flex:1;background:var(--s2);position:relative}
+#map{flex:1;background:var(--s2);position:relative;z-index:1;overflow:hidden}
 
 /* MAP PANELS */
 #panel{position:absolute;top:10px;right:8px;width:calc(100vw - 16px);max-width:320px;max-height:calc(100% - 20px);background:var(--surface);border:1px solid var(--bd2);border-radius:14px;z-index:900;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 6px 28px rgba(0,0,0,.15);transition:transform .3s,opacity .3s}
@@ -321,7 +321,8 @@ body:not(.is-admin) #map-bottom-nav {
 
 
 
-<script>(function waitL(){if(!window.L){return setTimeout(waitL,20);}if(L._emH)return;L._emH=1;var o=L.map;L.map=function(id,opt){var m=o.call(this,id,opt)||o.apply(this,arguments);window._em=m;return m;};}());</script>
+
+<script>(function waitL(){if(!window.L){return setTimeout(waitL,20);}if(L._emH)return;L._emH=1;var o=L.map;L.map=function(id,opt){var m=o.call(this,id,opt);window._em=m;return m;};}());</script>
 </head>
 <body data-version="2.1.3">
 
@@ -443,21 +444,6 @@ body:not(.is-admin) #map-bottom-nav {
       <button onclick="mapObj&&currentRoutePoints.length>1&&mapObj.fitBounds(L.polyline(currentRoutePoints).getBounds(),{padding:[40,40]})" style="width:100%;padding:8px;background:var(--bg);border:1px solid var(--bd2);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.7rem;cursor:pointer;color:var(--tx);-webkit-appearance:none">🔎 Gesamte Route</button>
     </div>
   </div>
-  <!-- ELE-PANEL v5 -->
-  <div id="ele-panel" style="position:absolute;left:0;right:0;bottom:0;z-index:860;height:130px;background:var(--surface);border-top:1.5px solid var(--bd);box-shadow:0 -3px 14px rgba(0,0,0,.10);display:none;flex-direction:column;font-family:'DM Sans',sans-serif">
-    <div id="ele-top" style="display:flex;align-items:center;justify-content:space-between;padding:4px 12px 3px;flex-shrink:0;border-bottom:1px solid var(--bd2)">
-      <div style="display:flex;align-items:center">
-        <span style="font-size:11px;font-weight:700;color:var(--o1);letter-spacing:.05em;text-transform:uppercase">Höhenprofil</span>
-        <span id="ele-st" style="font-size:10px;color:var(--tx2);margin-left:8px"></span>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span id="ele-tip" style="font-size:11px;font-weight:600;color:var(--tx);background:var(--s2);border:1px solid var(--bd);border-radius:4px;padding:1px 8px;display:none;white-space:nowrap"></span>
-        <button id="ele-btn" style="background:none;border:1px solid var(--bd2);border-radius:4px;padding:0 7px;font-size:12px;color:var(--tx2);cursor:pointer;line-height:1.8">▼</button>
-      </div>
-    </div>
-    <canvas id="ele-cv" style="flex:1;display:block;width:100%;min-height:0"></canvas>
-  </div>
-</div>
 
 <!-- ══════ WIZARD VIEW ══════ -->
 <div id="view-wizard">
@@ -4960,17 +4946,31 @@ function tmRefreshList() {
 
 <script>
 (function(){
-var PL=42,PR=10,PT=8,PB=20,PANEL_H=130;
+var PL=42,PR=10,PT=8,PB=20,PH=130,MINI=30;
 
-function togglePanel(){
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('ele-btn').onclick=toggle;
+
+  var tries=0,timer=setInterval(function(){
+    if(++tries>150){clearInterval(timer);return;}
+    if(!window._em)return;
+    if(!localStorage.getItem('bp_gpx_coords'))return;
+    if(buildChart()){
+      clearInterval(timer);
+      var p=document.getElementById('ele-panel');
+      p.style.display='flex';
+      window._em.invalidateSize();
+    }
+  },300);
+});
+
+function toggle(){
   var p=document.getElementById('ele-panel');
-  var col=p.classList.toggle('ep-col');
-  if(col){p.style.height='30px';p.style.overflow='hidden';}
-  else{p.style.height=PANEL_H+'px';p.style.overflow='';}
+  var col=p._col=!p._col;
+  p.style.height=(col?MINI:PH)+'px';
+  p.style.overflow=col?'hidden':'';
   document.getElementById('ele-btn').textContent=col?'▲':'▼';
-  var mapEl=document.getElementById('map');
-  mapEl.style.paddingBottom=col?'30px':PANEL_H+'px';
-  if(window._em)window._em.invalidateSize();
+  window._em&&window._em.invalidateSize();
   if(!col)requestAnimationFrame(function(){window._ed&&window._ed();});
 }
 
@@ -5001,8 +5001,8 @@ function buildChart(){
     c.font='9px "DM Sans",sans-serif';
     [200,400,600,800,1000,1200,1400,1600,1800].forEach(function(e){
       if(e<minE-30||e>maxE+30)return;
-      var y=yf(e);
-      c.strokeStyle='#e2e8f0';c.lineWidth=.5;c.beginPath();c.moveTo(PL,y);c.lineTo(PL+cW,y);c.stroke();
+      var y=yf(e);c.strokeStyle='#e2e8f0';c.lineWidth=.5;
+      c.beginPath();c.moveTo(PL,y);c.lineTo(PL+cW,y);c.stroke();
       c.fillStyle='#9ab0c8';c.textAlign='right';c.fillText(e+'m',PL-3,y+3);
     });
     c.textAlign='center';c.fillStyle='#9ab0c8';
@@ -5017,11 +5017,7 @@ function buildChart(){
     c.beginPath();c.moveTo(xf(cum[0]),yf(elevs[0]));
     for(var i=1;i<n;i++)c.lineTo(xf(cum[i]),yf(elevs[i]));
     c.lineTo(xf(cum[n-1]),PT+cH);c.lineTo(xf(cum[0]),PT+cH);c.closePath();c.fillStyle=g;c.fill();
-    for(var i=1;i<n;i++){
-      var t=(elevs[i]-minE)/eR;
-      c.strokeStyle='hsl('+(30-t*30)+',78%,'+(44+t*6)+'%)';c.lineWidth=1.8;
-      c.beginPath();c.moveTo(xf(cum[i-1]),yf(elevs[i-1]));c.lineTo(xf(cum[i]),yf(elevs[i]));c.stroke();
-    }
+    for(var i=1;i<n;i++){var t=(elevs[i]-minE)/eR;c.strokeStyle='hsl('+(30-t*30)+',78%,'+(44+t*6)+'%)';c.lineWidth=1.8;c.beginPath();c.moveTo(xf(cum[i-1]),yf(elevs[i-1]));c.lineTo(xf(cum[i]),yf(elevs[i]));c.stroke();}
     return{xf:xf,yf:yf,cH:cH};
   }
   window._ed=draw;
@@ -5034,10 +5030,8 @@ function buildChart(){
     var d=window._edat,rect=cv.getBoundingClientRect();
     var dist=((ev.clientX-rect.left-PL)/(cv.offsetWidth-PL-PR))*d.tot;
     if(dist<0||dist>d.tot)return;
-    var best=0,bd=1e9;
-    for(var i=0;i<d.n;i++){var dd=Math.abs(d.cum[i]-dist);if(dd<bd){bd=dd;best=i;}}
-    var tip=document.getElementById('ele-tip');
-    tip.style.display='inline-block';
+    var best=0,bd=1e9;for(var i=0;i<d.n;i++){var dd=Math.abs(d.cum[i]-dist);if(dd<bd){bd=dd;best=i;}}
+    var tip=document.getElementById('ele-tip');tip.style.display='inline-block';
     tip.textContent=d.cum[best].toFixed(0)+' km · '+Math.round(d.elevs[best])+' m';
     var r=window._ed();
     if(r){var c2=cv.getContext('2d');
@@ -5053,32 +5047,27 @@ function buildChart(){
   cv.addEventListener('click',function(ev){
     var d=window._edat,rect=cv.getBoundingClientRect();
     var dist=((ev.clientX-rect.left-PL)/(cv.offsetWidth-PL-PR))*d.tot;
-    var best=0,bd=1e9;
-    for(var i=0;i<d.n;i++){var dd=Math.abs(d.cum[i]-dist);if(dd<bd){bd=dd;best=i;}}
+    var best=0,bd=1e9;for(var i=0;i<d.n;i++){var dd=Math.abs(d.cum[i]-dist);if(dd<bd){bd=dd;best=i;}}
     if(window._em)window._em.flyTo(d.sam[best],12,{duration:1});
   });
   return true;
 }
-
-document.addEventListener('DOMContentLoaded',function(){
-  document.getElementById('ele-btn').onclick=togglePanel;
-  var tries=0;
-  var t=setInterval(function(){
-    if(++tries>150){clearInterval(t);return;}
-    var mapEl=document.getElementById('map');
-    if(!mapEl||!window._em)return;
-    if(!localStorage.getItem('bp_gpx_coords'))return;
-    if(buildChart()){
-      clearInterval(t);
-      var p=document.getElementById('ele-panel');
-      p.style.display='flex';
-      mapEl.style.paddingBottom=PANEL_H+'px';
-      window._em.invalidateSize();
-    }
-  },300);
-});
 })();
 </script>
 </body>
 </html>
-<!-- END OF FILE — Version 2.1.3 -->
+<!-- END OF FILE — Version 2.1.3 --
+  <!-- ELE-PANEL -->
+  <div id="ele-panel" style="flex-shrink:0;height:130px;background:var(--surface);border-top:1.5px solid var(--bd);box-shadow:0 -3px 14px rgba(0,0,0,.1);display:none;flex-direction:column;font-family:'DM Sans',sans-serif;z-index:2;position:relative">
+    <div id="ele-top" style="display:flex;align-items:center;justify-content:space-between;padding:4px 12px 3px;flex-shrink:0;border-bottom:1px solid var(--bd2)">
+      <div style="display:flex;align-items:center">
+        <span style="font-size:11px;font-weight:700;color:var(--o1);letter-spacing:.05em;text-transform:uppercase">Höhenprofil</span>
+        <span id="ele-st" style="font-size:10px;color:var(--tx2);margin-left:8px"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span id="ele-tip" style="font-size:11px;font-weight:600;color:var(--tx);background:var(--s2);border:1px solid var(--bd);border-radius:4px;padding:1px 8px;display:none;white-space:nowrap"></span>
+        <button id="ele-btn" style="background:none;border:1px solid var(--bd2);border-radius:4px;padding:0 7px;font-size:12px;color:var(--tx2);cursor:pointer;line-height:1.8">▼</button>
+      </div>
+    </div>
+    <canvas id="ele-cv" style="flex:1;display:block;width:100%;min-height:0"></canvas>
+  </div>>
