@@ -4959,8 +4959,9 @@ document.addEventListener('DOMContentLoaded',function(){
       clearInterval(timer);
       var p=document.getElementById('ele-panel');
       p.style.display='flex';
-      window._em.invalidateSize();
-      setTimeout(function(){window._em.invalidateSize();requestAnimationFrame(function(){window._ed&&window._ed();});},150);
+      var _c=window._em.getCenter(),_z=window._em.getZoom();
+      window._em.invalidateSize({animate:false});
+      setTimeout(function(){window._em.setView(_c,_z,{animate:false,reset:true});requestAnimationFrame(function(){window._ed&&window._ed();});},200);
     }
   },300);
 });
