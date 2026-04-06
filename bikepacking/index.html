@@ -4960,6 +4960,7 @@ document.addEventListener('DOMContentLoaded',function(){
       var p=document.getElementById('ele-panel');
       p.style.display='flex';
       window._em.invalidateSize();
+      setTimeout(function(){window._em.invalidateSize();requestAnimationFrame(function(){window._ed&&window._ed();});},150);
     }
   },300);
 });
