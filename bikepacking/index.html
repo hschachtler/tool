@@ -991,7 +991,7 @@ body:not(.is-admin) #map-bottom-nav {
 // CONSTANTS & STATE
 // ═══════════════════════════════════════════════════════════
 const ADMIN_PASS = '880197'; // ⚠️ Demo only – replace with server-side auth for production
-const APP_VERSION = '2.3.3';
+const APP_VERSION = '2.3.4';
 const APP_BUILD   = '2026-04-07';
 
 // ── Auto-Update + localStorage Migration ────────────────────────
@@ -5023,13 +5023,13 @@ function buildChart(){
   for(var i=0;i<n;i++)sam.push(coords[Math.round(i*step)]);
   function hv(a,b){var R=6371000,r=Math.PI/180,x=Math.sin((b[0]-a[0])*r/2),y=Math.sin((b[1]-a[1])*r/2);return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a[0]*r)*Math.cos(b[0]*r)*y*y));}
   // cumAll: akkumulierte Distanz über ALLE coords-Punkte (exakt, für Marker-Lookup)
+  // cumAll aus currentRoutePoints (gezeichnete Route) — Marker landet exakt auf der Linie
+  var rp=window.currentRoutePoints||coords;
   var cumAll=[0];
-  for(var i=1;i<coords.length;i++)cumAll.push(cumAll[i-1]+hv(coords[i-1],coords[i])/1000);
+  for(var i=1;i<rp.length;i++)cumAll.push(cumAll[i-1]+hv(rp[i-1],rp[i])/1000);
   var totAll=cumAll[cumAll.length-1];
-  // cum: sam-Punkte auf cumAll-Skala mappen (nicht neu berechnen!)
-  // so haben cum und cumAll dieselbe Gesamtdistanz
   var cum=[0];
-  for(var i=1;i<n;i++){var si=Math.round(i*step);cum.push(cumAll[si]);}
+  for(var i=1;i<n;i++){var si=Math.round(i*(rp.length-1)/(n-1));cum.push(cumAll[Math.min(si,cumAll.length-1)]);}
   var tot=cum[n-1]||totAll;
   var minE=1e9,maxE=-1e9,up=0,dn=0;
   for(var i=0;i<n;i++){if(elevs[i]<minE)minE=elevs[i];if(elevs[i]>maxE)maxE=elevs[i];}
@@ -5071,7 +5071,7 @@ function buildChart(){
     return{xf:xf,yf:yf,cH:cH};
   }
   window._ed=draw;
-  window._edat={elevs:elevs,cum:cum,tot:tot,sam:sam,eR:eR,n:n,cumAll:cumAll,totAll:totAll,coords:coords};
+  window._edat={elevs:elevs,cum:cum,tot:tot,sam:sam,eR:eR,n:n,cumAll:cumAll,totAll:totAll,coords:coords,rp:rp};
   requestAnimationFrame(draw);
   new ResizeObserver(function(){requestAnimationFrame(function(){window._ed&&window._ed();});}).observe(cv);
 
@@ -5092,7 +5092,7 @@ function buildChart(){
       // Find exact coords point closest to this distance for accurate map marker
       var targetDist=d.cum[best],bestCI=0,bestCD=1e9;
       for(var ci=0;ci<d.cumAll.length;ci++){var cd=Math.abs(d.cumAll[ci]-targetDist*d.totAll/d.tot);if(cd<bestCD){bestCD=cd;bestCI=ci;}}
-      var markerPt=d.coords[bestCI];
+      var markerPt=(d.rp||d.coords)[bestCI];
       if(!hm)hm=L.circleMarker(markerPt,{radius:7,color:'#c85a0a',fillColor:'#e07820',fillOpacity:.9,weight:2}).addTo(window._em);else hm.setLatLng(markerPt);}
   });
   cv.addEventListener('mouseleave',function(){
@@ -5157,9 +5157,10 @@ function buildChart(){
   var n=elevs.length,step=(coords.length-1)/(n-1),sam=[];
   for(var i=0;i<n;i++)sam.push(coords[Math.round(i*step)]);
   function hv(a,b){var R=6371000,r=Math.PI/180,x=Math.sin((b[0]-a[0])*r/2),y=Math.sin((b[1]-a[1])*r/2);return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a[0]*r)*Math.cos(b[0]*r)*y*y));}
-  var cumAll=[0];for(var i=1;i<coords.length;i++)cumAll.push(cumAll[i-1]+hv(coords[i-1],coords[i])/1000);
+  var rp=window.currentRoutePoints||coords;
+  var cumAll=[0];for(var i=1;i<rp.length;i++)cumAll.push(cumAll[i-1]+hv(rp[i-1],rp[i])/1000);
   var totAll=cumAll[cumAll.length-1];
-  var cum=[0];for(var i=1;i<n;i++){var si=Math.round(i*step);cum.push(cumAll[si]);}
+  var cum=[0];for(var i=1;i<n;i++){var si=Math.round(i*(rp.length-1)/(n-1));cum.push(cumAll[Math.min(si,cumAll.length-1)]);}
   var tot=cum[n-1]||totAll;
   var minE=1e9,maxE=-1e9,up=0,dn=0;
   for(var i=0;i<n;i++){if(elevs[i]<minE)minE=elevs[i];if(elevs[i]>maxE)maxE=elevs[i];}
@@ -5197,7 +5198,7 @@ function buildChart(){
     for(var i=1;i<n;i++){var gx=c.createLinearGradient(xf(cum[i-1]),0,xf(cum[i]),0);gx.addColorStop(0,gC(cum[i-1]/tot,.95));gx.addColorStop(1,gC(cum[i]/tot,.95));c.strokeStyle=gx;c.lineWidth=2;c.beginPath();c.moveTo(xf(cum[i-1]),yf(elevs[i-1]));c.lineTo(xf(cum[i]),yf(elevs[i]));c.stroke();}
     return{xf:xf,yf:yf,cH:cH};
   }
-  window._ed=draw;window._edat={elevs:elevs,cum:cum,tot:tot,sam:sam,eR:eR,n:n,cumAll:cumAll,totAll:totAll,coords:coords};
+  window._ed=draw;window._edat={elevs:elevs,cum:cum,tot:tot,sam:sam,eR:eR,n:n,cumAll:cumAll,totAll:totAll,coords:coords,rp:rp};
   requestAnimationFrame(draw);
   new ResizeObserver(function(){requestAnimationFrame(function(){window._ed&&window._ed();});}).observe(cv);
   var hm=null;
@@ -5214,7 +5215,7 @@ function buildChart(){
       // Find exact coords point closest to this distance for accurate map marker
       var targetDist=d.cum[best],bestCI=0,bestCD=1e9;
       for(var ci=0;ci<d.cumAll.length;ci++){var cd=Math.abs(d.cumAll[ci]-targetDist*d.totAll/d.tot);if(cd<bestCD){bestCD=cd;bestCI=ci;}}
-      var markerPt=d.coords[bestCI];
+      var markerPt=(d.rp||d.coords)[bestCI];
       if(!hm)hm=L.circleMarker(markerPt,{radius:7,color:'#c85a0a',fillColor:'#e07820',fillOpacity:.9,weight:2}).addTo(window._em);else hm.setLatLng(markerPt);}
   });
   cv.addEventListener('mouseleave',function(){window._ed&&window._ed();document.getElementById('ele-tip').style.display='none';if(hm&&window._em){window._em.removeLayer(hm);hm=null;}});
