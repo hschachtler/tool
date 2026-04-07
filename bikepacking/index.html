@@ -991,7 +991,7 @@ body:not(.is-admin) #map-bottom-nav {
 // CONSTANTS & STATE
 // ═══════════════════════════════════════════════════════════
 const ADMIN_PASS = '880197'; // ⚠️ Demo only – replace with server-side auth for production
-const APP_VERSION = '2.3.2';
+const APP_VERSION = '2.3.3';
 const APP_BUILD   = '2026-04-07';
 
 // ── Auto-Update + localStorage Migration ────────────────────────
@@ -5022,13 +5022,16 @@ function buildChart(){
   var n=elevs.length,step=(coords.length-1)/(n-1),sam=[];
   for(var i=0;i<n;i++)sam.push(coords[Math.round(i*step)]);
   function hv(a,b){var R=6371000,r=Math.PI/180,x=Math.sin((b[0]-a[0])*r/2),y=Math.sin((b[1]-a[1])*r/2);return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a[0]*r)*Math.cos(b[0]*r)*y*y));}
-  // Build cumulative distances using ALL coords for accurate marker placement
+  // cumAll: akkumulierte Distanz über ALLE coords-Punkte (exakt, für Marker-Lookup)
   var cumAll=[0];
   for(var i=1;i<coords.length;i++)cumAll.push(cumAll[i-1]+hv(coords[i-1],coords[i])/1000);
   var totAll=cumAll[cumAll.length-1];
+  // cum: sam-Punkte auf cumAll-Skala mappen (nicht neu berechnen!)
+  // so haben cum und cumAll dieselbe Gesamtdistanz
   var cum=[0];
-  for(var i=1;i<n;i++)cum.push(cum[i-1]+hv(sam[i-1],sam[i])/1000);
-  var tot=cum[n-1],minE=1e9,maxE=-1e9,up=0,dn=0;
+  for(var i=1;i<n;i++){var si=Math.round(i*step);cum.push(cumAll[si]);}
+  var tot=cum[n-1]||totAll;
+  var minE=1e9,maxE=-1e9,up=0,dn=0;
   for(var i=0;i<n;i++){if(elevs[i]<minE)minE=elevs[i];if(elevs[i]>maxE)maxE=elevs[i];}
   for(var i=1;i<n;i++){var d=elevs[i]-elevs[i-1];if(d>0)up+=d;else dn-=d;}
   var eR=maxE-minE||1;
@@ -5154,8 +5157,11 @@ function buildChart(){
   var n=elevs.length,step=(coords.length-1)/(n-1),sam=[];
   for(var i=0;i<n;i++)sam.push(coords[Math.round(i*step)]);
   function hv(a,b){var R=6371000,r=Math.PI/180,x=Math.sin((b[0]-a[0])*r/2),y=Math.sin((b[1]-a[1])*r/2);return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a[0]*r)*Math.cos(b[0]*r)*y*y));}
-  var cum=[0];for(var i=1;i<n;i++)cum.push(cum[i-1]+hv(sam[i-1],sam[i])/1000);
-  var tot=cum[n-1],minE=1e9,maxE=-1e9,up=0,dn=0;
+  var cumAll=[0];for(var i=1;i<coords.length;i++)cumAll.push(cumAll[i-1]+hv(coords[i-1],coords[i])/1000);
+  var totAll=cumAll[cumAll.length-1];
+  var cum=[0];for(var i=1;i<n;i++){var si=Math.round(i*step);cum.push(cumAll[si]);}
+  var tot=cum[n-1]||totAll;
+  var minE=1e9,maxE=-1e9,up=0,dn=0;
   for(var i=0;i<n;i++){if(elevs[i]<minE)minE=elevs[i];if(elevs[i]>maxE)maxE=elevs[i];}
   for(var i=1;i<n;i++){var d=elevs[i]-elevs[i-1];if(d>0)up+=d;else dn-=d;}
   var eR=maxE-minE||1;
