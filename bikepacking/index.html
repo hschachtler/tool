@@ -3946,7 +3946,7 @@ function refreshMapMarkers() {
     const s=currentRoutePoints[0], e=currentRoutePoints[currentRoutePoints.length-1];
     L.marker(s,{icon:pin('🏁','#1a8a5a')}).addTo(mapObj).bindTooltip('<b>START</b>',{direction:'right'});
     L.marker(e,{icon:pin('🏆','#b02818')}).addTo(mapObj).bindTooltip('<b>ZIEL</b>',{direction:'left'});
-    mapObj.fitBounds(line.getBounds(),{padding:[40,40]});
+    mapObj.fitBounds(L.latLngBounds(_rPts),{padding:[40,40]});
   }
 
   // Build cluster group - nur Admin
