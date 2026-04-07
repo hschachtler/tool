@@ -979,7 +979,7 @@ body:not(.is-admin) #map-bottom-nav {
 // CONSTANTS & STATE
 // ═══════════════════════════════════════════════════════════
 const ADMIN_PASS = '880197'; // ⚠️ Demo only – replace with server-side auth for production
-const APP_VERSION = '2.4.1';
+const APP_VERSION = '2.4.2';
 const APP_BUILD   = '2026-04-07';
 
 // ── Auto-Update + localStorage Migration ────────────────────────
@@ -3907,8 +3907,9 @@ function refreshMapMarkers() {
 
   // Draw route
   if (currentRoutePoints.length > 1) {
-    // Elevation-colored route segments
+    // Elevation-colored route segments (distance-based mapping)
     const _rElevs=JSON.parse(localStorage.getItem('bp_elevations')||'[]');
+    const _rCoords=JSON.parse(localStorage.getItem('bp_gpx_coords')||'[]');
     const _rPts=currentRoutePoints;
     if(_rElevs.length>1&&_rPts.length>1){
       const _rMin=Math.min(..._rElevs),_rMax=Math.max(..._rElevs),_rR=_rMax-_rMin||1;
@@ -3920,17 +3921,42 @@ function refreshMapMarkers() {
         const f=(t-lo[0])/(hi[0]-lo[0]||1);
         return'rgb('+[0,1,2].map(c=>Math.round(lo[1][c]+(hi[1][c]-lo[1][c])*f)).join(',')+')';
       }
-      const _rStep=(_rElevs.length-1)/(_rPts.length-1||1);
+      function _rhv(a,b){const R=6371000,r=Math.PI/180,x=Math.sin((b[0]-a[0])*r/2),y=Math.sin((b[1]-a[1])*r/2);return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a[0]*r)*Math.cos(b[0]*r)*y*y));}
+      // Kumulative Distanzen entlang gpx_coords (Elevation-Stützpunkte)
+      // elevs[i] entspricht coords[i * step] wobei step = (coords.length-1)/(elevs.length-1)
+      const _eStep=(_rCoords.length-1)/(_rElevs.length-1||1);
+      // Kumulative Distanz entlang _rPts
+      const _rpCum=[0];
+      for(let i=1;i<_rPts.length;i++) _rpCum.push(_rpCum[i-1]+_rhv(_rPts[i-1],_rPts[i]));
+      const _rpTot=_rpCum[_rPts.length-1]||1;
+      // Kumulative Distanz entlang _rCoords
+      const _rcCum=[0];
+      for(let i=1;i<_rCoords.length;i++) _rcCum.push(_rcCum[i-1]+_rhv(_rCoords[i-1],_rCoords[i]));
+      const _rcTot=_rcCum[_rCoords.length-1]||1;
+      // Für jeden _rPts-Punkt: Elevation per Distanz-Interpolation
+      function _elevAt(rpIdx){
+        const d=_rpCum[rpIdx]/_rpTot*_rcTot; // skaliere auf _rCoords-Distanz
+        // Finde den Elevation-Index: elevs[ei] gehört zu coords[round(ei*_eStep)]
+        // Suche ei so dass _rcCum[round(ei*_eStep)] ≈ d
+        let lo=0,hi=_rElevs.length-1;
+        while(lo<hi-1){
+          const mid=(lo+hi)>>1;
+          const ci=Math.min(Math.round(mid*_eStep),_rCoords.length-1);
+          if(_rcCum[ci]<d) lo=mid; else hi=mid;
+        }
+        const ci0=Math.min(Math.round(lo*_eStep),_rCoords.length-1);
+        const ci1=Math.min(Math.round(hi*_eStep),_rCoords.length-1);
+        const d0=_rcCum[ci0],d1=_rcCum[ci1];
+        const f=(d1>d0)?(d-d0)/(d1-d0):0;
+        return _rElevs[lo]+(_rElevs[hi]-_rElevs[lo])*Math.max(0,Math.min(1,f));
+      }
       // Pass 1: weisser Halo
       const _halo=L.polyline(_rPts,{color:'white',weight:6,opacity:.5,smoothFactor:1}).addTo(mapObj);
       routePolylines.push(_halo);
-      // Pass 2: farbige Segmente nach Höhe
-      // Farbe jedes Segments = Durchschnitt der beiden Endpunkt-Höhen
+      // Pass 2: farbige Segmente nach Höhe (distanz-basiert)
       for(let i=1;i<_rPts.length;i++){
-        const ei0=Math.min(Math.round((i-1)*_rStep),_rElevs.length-1);
-        const ei1=Math.min(Math.round(i*_rStep),_rElevs.length-1);
-        const avgElev=(_rElevs[ei0]+_rElevs[ei1])/2;
-        const seg=L.polyline([_rPts[i-1],_rPts[i]],{color:_rColor(avgElev),weight:3.5,opacity:1,lineCap:'round',lineJoin:'round'}).addTo(mapObj);
+        const avg=(_elevAt(i-1)+_elevAt(i))/2;
+        const seg=L.polyline([_rPts[i-1],_rPts[i]],{color:_rColor(avg),weight:3.5,opacity:1,lineCap:'round',lineJoin:'round'}).addTo(mapObj);
         routePolylines.push(seg);
       }
     }else{
