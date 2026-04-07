@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Version 2.1.3 — BikePacking Manager -->
+<!-- Version 2.2.0 — BikePacking Manager -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -3919,8 +3919,29 @@ function refreshMapMarkers() {
 
   // Draw route
   if (currentRoutePoints.length > 1) {
-    const line=L.polyline(currentRoutePoints,{color:'#c85a0a',weight:3.5,opacity:.75,smoothFactor:1}).addTo(mapObj);
-    routePolylines.push(line);
+    // Elevation-colored route segments
+    const _rElevs=JSON.parse(localStorage.getItem('bp_elevations')||'[]');
+    const _rPts=currentRoutePoints;
+    if(_rElevs.length>1&&_rPts.length>1){
+      const _rMin=Math.min(..._rElevs),_rMax=Math.max(..._rElevs),_rR=_rMax-_rMin||1;
+      const _rStops=[[0,[34,197,94]],[.25,[132,204,22]],[.45,[234,179,8]],[.65,[249,115,22]],[.85,[239,68,68]],[1,[168,85,247]]];
+      function _rColor(e){
+        const t=Math.max(0,Math.min(1,(e-_rMin)/_rR));
+        let lo=_rStops[0],hi=_rStops[_rStops.length-1];
+        for(let i=0;i<_rStops.length-1;i++){if(t>=_rStops[i][0]&&t<=_rStops[i+1][0]){lo=_rStops[i];hi=_rStops[i+1];break;}}
+        const f=(t-lo[0])/(hi[0]-lo[0]||1);
+        return'rgb('+[0,1,2].map(c=>Math.round(lo[1][c]+(hi[1][c]-lo[1][c])*f)).join(',')+')';
+      }
+      const _rStep=(_rElevs.length-1)/(_rPts.length-1||1);
+      for(let i=1;i<_rPts.length;i++){
+        const ei=Math.min(Math.round(i*_rStep),_rElevs.length-1);
+        const seg=L.polyline([_rPts[i-1],_rPts[i]],{color:_rColor(_rElevs[ei]),weight:4,opacity:.9,lineCap:'round',lineJoin:'round'}).addTo(mapObj);
+        routePolylines.push(seg);
+      }
+    }else{
+      const line=L.polyline(_rPts,{color:'#c85a0a',weight:3.5,opacity:.75,smoothFactor:1}).addTo(mapObj);
+      routePolylines.push(line);
+    }
     const pin=(em,bg)=>L.divIcon({html:`<div style="background:${bg};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid var(--surface);box-shadow:0 2px 10px rgba(0,0,0,.18)">${em}</div>`,iconSize:[32,32],iconAnchor:[16,16],className:''});
     const s=currentRoutePoints[0], e=currentRoutePoints[currentRoutePoints.length-1];
     L.marker(s,{icon:pin('🏁','#1a8a5a')}).addTo(mapObj).bindTooltip('<b>START</b>',{direction:'right'});
@@ -5028,12 +5049,15 @@ function buildChart(){
       var x1=xf(cc[1]),x2=xf(a[i+1]?a[i+1][1]:tot);
       c.font='bold 9px "DM Sans",sans-serif';c.fillStyle='rgba(160,90,10,.28)';c.textAlign='center';c.fillText(cc[0],(x1+x2)/2,PT+11);
     });
-    var g=c.createLinearGradient(0,PT,0,PT+cH);
-    g.addColorStop(0,'rgba(200,90,10,.5)');g.addColorStop(.5,'rgba(224,120,32,.18)');g.addColorStop(1,'rgba(224,120,32,.02)');
+    // Horizontal elevation color gradient
+    var gS=[[0,[34,197,94]],[.25,[132,204,22]],[.45,[234,179,8]],[.65,[249,115,22]],[.85,[239,68,68]],[1,[168,85,247]]];
+    function gC(t,a){var lo=gS[0],hi=gS[gS.length-1];for(var s=0;s<gS.length-1;s++){if(t>=gS[s][0]&&t<=gS[s+1][0]){lo=gS[s];hi=gS[s+1];break;}}var f=(t-lo[0])/(hi[0]-lo[0]||1);return'rgba('+[0,1,2].map(function(c){return Math.round(lo[1][c]+(hi[1][c]-lo[1][c])*f);}).join(',')+','+a+')';}
+    var g=c.createLinearGradient(PL,0,PL+cW,0);
+    g.addColorStop(0,gC(0,.55));g.addColorStop(.25,gC(.25,.55));g.addColorStop(.45,gC(.45,.55));g.addColorStop(.65,gC(.65,.55));g.addColorStop(.85,gC(.85,.55));g.addColorStop(1,gC(1,.55));
     c.beginPath();c.moveTo(xf(cum[0]),yf(elevs[0]));
     for(var i=1;i<n;i++)c.lineTo(xf(cum[i]),yf(elevs[i]));
     c.lineTo(xf(cum[n-1]),PT+cH);c.lineTo(xf(cum[0]),PT+cH);c.closePath();c.fillStyle=g;c.fill();
-    for(var i=1;i<n;i++){var t=(elevs[i]-minE)/eR;c.strokeStyle='hsl('+(30-t*30)+',78%,'+(44+t*6)+'%)';c.lineWidth=1.8;c.beginPath();c.moveTo(xf(cum[i-1]),yf(elevs[i-1]));c.lineTo(xf(cum[i]),yf(elevs[i]));c.stroke();}
+    for(var i=1;i<n;i++){var gx=c.createLinearGradient(xf(cum[i-1]),0,xf(cum[i]),0);gx.addColorStop(0,gC(cum[i-1]/tot,.95));gx.addColorStop(1,gC(cum[i]/tot,.95));c.strokeStyle=gx;c.lineWidth=2;c.beginPath();c.moveTo(xf(cum[i-1]),yf(elevs[i-1]));c.lineTo(xf(cum[i]),yf(elevs[i]));c.stroke();}
     return{xf:xf,yf:yf,cH:cH};
   }
   window._ed=draw;
@@ -5072,7 +5096,7 @@ function buildChart(){
 </script>
 </body>
 </html>
-<!-- END OF FILE — Version 2.1.3 --
+<!-- END OF FILE — Version 2.2.0 --
 <script>
 (function(){
 var PL=42,PR=10,PT=8,PB=20,PH=130,MINI=30;
@@ -5144,12 +5168,15 @@ function buildChart(){
       var x1=xf(cc[1]),x2=xf(a[i+1]?a[i+1][1]:tot);
       c.font='bold 9px "DM Sans",sans-serif';c.fillStyle='rgba(160,90,10,.28)';c.textAlign='center';c.fillText(cc[0],(x1+x2)/2,PT+11);
     });
-    var g=c.createLinearGradient(0,PT,0,PT+cH);
-    g.addColorStop(0,'rgba(200,90,10,.5)');g.addColorStop(.5,'rgba(224,120,32,.18)');g.addColorStop(1,'rgba(224,120,32,.02)');
+    // Horizontal elevation color gradient
+    var gS=[[0,[34,197,94]],[.25,[132,204,22]],[.45,[234,179,8]],[.65,[249,115,22]],[.85,[239,68,68]],[1,[168,85,247]]];
+    function gC(t,a){var lo=gS[0],hi=gS[gS.length-1];for(var s=0;s<gS.length-1;s++){if(t>=gS[s][0]&&t<=gS[s+1][0]){lo=gS[s];hi=gS[s+1];break;}}var f=(t-lo[0])/(hi[0]-lo[0]||1);return'rgba('+[0,1,2].map(function(c){return Math.round(lo[1][c]+(hi[1][c]-lo[1][c])*f);}).join(',')+','+a+')';}
+    var g=c.createLinearGradient(PL,0,PL+cW,0);
+    g.addColorStop(0,gC(0,.55));g.addColorStop(.25,gC(.25,.55));g.addColorStop(.45,gC(.45,.55));g.addColorStop(.65,gC(.65,.55));g.addColorStop(.85,gC(.85,.55));g.addColorStop(1,gC(1,.55));
     c.beginPath();c.moveTo(xf(cum[0]),yf(elevs[0]));
     for(var i=1;i<n;i++)c.lineTo(xf(cum[i]),yf(elevs[i]));
     c.lineTo(xf(cum[n-1]),PT+cH);c.lineTo(xf(cum[0]),PT+cH);c.closePath();c.fillStyle=g;c.fill();
-    for(var i=1;i<n;i++){var t=(elevs[i]-minE)/eR;c.strokeStyle='hsl('+(30-t*30)+',78%,'+(44+t*6)+'%)';c.lineWidth=1.8;c.beginPath();c.moveTo(xf(cum[i-1]),yf(elevs[i-1]));c.lineTo(xf(cum[i]),yf(elevs[i]));c.stroke();}
+    for(var i=1;i<n;i++){var gx=c.createLinearGradient(xf(cum[i-1]),0,xf(cum[i]),0);gx.addColorStop(0,gC(cum[i-1]/tot,.95));gx.addColorStop(1,gC(cum[i]/tot,.95));c.strokeStyle=gx;c.lineWidth=2;c.beginPath();c.moveTo(xf(cum[i-1]),yf(elevs[i-1]));c.lineTo(xf(cum[i]),yf(elevs[i]));c.stroke();}
     return{xf:xf,yf:yf,cH:cH};
   }
   window._ed=draw;window._edat={elevs:elevs,cum:cum,tot:tot,sam:sam,eR:eR,n:n};
@@ -5181,4 +5208,4 @@ function buildChart(){
 
 </body>
 </html>
-<!-- END OF FILE — Version 2.1.3 -->>
+<!-- END OF FILE — Version 2.2.0 -->>
